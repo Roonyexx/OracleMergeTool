@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="PlSqlMergeTool.BLL/PlSqlMergeTool.BLL.csproj" />
+  <Project Path="PlSqlMergeTool.DAL/PlSqlMergeTool.DAL.csproj" />
+  <Project Path="PlSqlMergeTool.UI/PlSqlMergeTool.UI.csproj" />
+</Solution>
