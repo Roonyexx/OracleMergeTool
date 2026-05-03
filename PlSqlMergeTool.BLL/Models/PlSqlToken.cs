@@ -1,11 +1,12 @@
 
-namespace PlSqlMergeTool.DAL.Models;
+namespace PlSqlMergeTool.BLL.Models;
 
 public class PlSqlToken : IEquatable<PlSqlToken>
 {
     public string Text { get; set; } = string.Empty;
     public int Line { get; set; }
-    public int Column { get; set; }
+    public int Offset { get; set; }
+    public int Length  { get; set; }
 
     public bool Equals(PlSqlToken? other)
     {
