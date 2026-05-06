@@ -9,7 +9,7 @@ public class SqlAnalyserService(TokenFilter tokenFilter)
 {
     private TokenFilter _tokenFilter = tokenFilter;
 
-    public ParsedSqlDocument Analyse(string sqlText)
+    public ParsedSqlDocument Tokenize(string sqlText)
     {
         var scanner = new Scanner(sqlText);
         var rawTokens = new List<PlSqlToken>();
@@ -32,11 +32,11 @@ public class SqlAnalyserService(TokenFilter tokenFilter)
     public (ParsedSqlDocument Baseline, 
             ParsedSqlDocument Local, 
             ParsedSqlDocument Target) 
-    AnalyseSchemas(string baselineSql, string localSql, string targetSql)
+    TokenizeSchemas(string baselineSql, string localSql, string targetSql)
     {
-        var baselineDoc = Analyse(baselineSql);
-        var localDoc = Analyse(localSql);
-        var targetDoc = Analyse(targetSql);
+        var baselineDoc = Tokenize(baselineSql);
+        var localDoc = Tokenize(localSql);
+        var targetDoc = Tokenize(targetSql);
         
         return (baselineDoc, localDoc, targetDoc);
     }
