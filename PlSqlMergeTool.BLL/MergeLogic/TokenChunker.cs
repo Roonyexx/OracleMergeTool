@@ -3,7 +3,7 @@ using DiffPlex;
 using DiffPlex.Chunkers;
 using PlSqlMergeTool.BLL.Services;
 
-namespace PlSqlMergeTool.BLL.LexicalAnalysis;
+namespace PlSqlMergeTool.BLL.MergeLogic;
 
 public class TokenChunker(SqlAnalyserService sqlAnalyserService) : IChunker
 {
