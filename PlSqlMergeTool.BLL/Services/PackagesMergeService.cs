@@ -1,15 +1,19 @@
 using PlSqlMergeTool.BLL.MergeLogic;
 namespace PlSqlMergeTool.BLL.Services;
 
-class PackagesMergeService(SqlDifferService sqlDifferService, MergeResolverService mergeResolverService)
+class PackagesMergeService(MergeResolverService mergeResolverService)
 {
-    private readonly SqlDifferService _sqlDifferService = sqlDifferService;
-    private readonly MergeResolverService _mergeResolverService = mergeResolverService;
+    private readonly MergeResolverService _resolver = mergeResolverService;
+    // ссылка на бд должна быть
 
-    public MergeContext Merge(string filename, string baselineSql, string localSql, string targetSql)
+    public void ProcessPackages(List<MergeContext> packages)
     {
-        var context = _sqlDifferService.Diff(filename, baselineSql, localSql, targetSql);
-        _mergeResolverService.Resolve(context);
-        return context;
+        
+        foreach (var context in packages)
+        {
+            _resolver.Resolve(context);
+        }
+        // todo сохранить результаты в бд, отобразить пользователю, дать возможность разрешить конфликты вручную и т.д.
+        
     }
 }
