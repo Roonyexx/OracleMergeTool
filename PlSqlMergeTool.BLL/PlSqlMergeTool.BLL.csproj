@@ -1,10 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\PlSqlMergeTool.DAL\PlSqlMergeTool.DAL.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="DiffPlex" Version="1.9.0" />
   </ItemGroup>
 
