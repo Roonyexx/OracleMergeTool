@@ -1,7 +1,7 @@
 using PlSqlMergeTool.BLL.MergeLogic;
 namespace PlSqlMergeTool.BLL.Services;
 
-class PackagesMergeService(MergeResolverService mergeResolverService)
+public class PackagesMergeService(MergeResolverService mergeResolverService)
 {
     private readonly MergeResolverService _resolver = mergeResolverService;
     // ссылка на бд должна быть
