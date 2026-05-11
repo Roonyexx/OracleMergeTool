@@ -9,7 +9,8 @@ public class OracleCompileError
 
 public class TableColumnMetadata
 {
-    public required string TableName { get; init; }
+    public required string ObjectName { get; init; }
+    public required string ObjectType { get; init; }
     public required string ColumnName { get; init; }
     public required string DataType { get; init; }
 }
