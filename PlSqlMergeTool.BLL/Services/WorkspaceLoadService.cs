@@ -4,12 +4,23 @@ using PlSqlMergeTool.BLL.Models;
 
 namespace PlSqlMergeTool.BLL.Services;
 
-public class WorkspaceLoadService(IOracleRepository repository, SqlDifferService differService)
+public class WorkspaceLoadService(IOracleRepository repository, SqlDifferService differService, DdlAnalysisService ddlAnalysisService)
 {
     private readonly IOracleRepository _repository = repository;
     private readonly SqlDifferService _differService = differService;
+    private readonly DdlAnalysisService _ddlAnalysisService = ddlAnalysisService;
 
-    public async Task<List<MergeContext>> LoadAsync(WorkspaceConnectionConfig config)
+    public async Task<DdlAnalysisReport> LoadDdlReportAsync(WorkspaceConnectionConfig config)
+    {
+        var localDdlTask = Task.Run(() => _repository.GetSchemaTablesMetadata(config.LocalConnection));
+        var targetDdlTask = Task.Run(() => _repository.GetSchemaTablesMetadata(config.TargetConnection));
+
+        await Task.WhenAll(localDdlTask, targetDdlTask);
+
+        return _ddlAnalysisService.AnalyzeDdlChanges(localDdlTask.Result, targetDdlTask.Result);
+    }
+
+    public async Task<List<MergeContext>> LoadPackagesAsync(WorkspaceConnectionConfig config)
     {
         var contexts = new List<MergeContext>();
 
