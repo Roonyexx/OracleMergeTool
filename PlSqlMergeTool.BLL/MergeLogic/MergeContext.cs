@@ -8,6 +8,7 @@ public enum MergeStatus
     Pending,            // еще не обработан
     AutoTarget,         // автоматически взят Target
     AutoLocal,          // Автоматически взят Local
+    AutoMerged,
     NoChanges,          // Файлы не менялись
     ManualConflict      // Kонфликт, требующий ручного разрешения
 }

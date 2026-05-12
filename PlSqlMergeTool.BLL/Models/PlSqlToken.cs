@@ -12,7 +12,8 @@ public enum TokenType
     Word,
     Operator,
     Delimiter,
-    Unknown
+    Unknown,
+    Eof
 }
 public class PlSqlToken : IEquatable<PlSqlToken>
 {
@@ -21,6 +22,8 @@ public class PlSqlToken : IEquatable<PlSqlToken>
     public int Offset { get; set; }
     public int Length  { get; set; }
     public TokenType Type { get; set; }
+
+    public List<PlSqlToken> LeadingTrivia { get; set; } = [];
 
     public bool Equals(PlSqlToken? other)
     {

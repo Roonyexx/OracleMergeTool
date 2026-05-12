@@ -1,5 +1,5 @@
 using PlSqlMergeTool.BLL.MergeLogic;
-
+using PlSqlMergeTool.BLL.Services;
 namespace PlSqlMergeTool.BLL.Services;
 
 public class MergeRuleBuilder
@@ -26,7 +26,7 @@ public class MergeRuleBuilder
 
     public MergeRuleBuilder AddConflictRule()
     {
-        _rules.Add(new MergeConflictRule());
+        _rules.Add(new ThreeWayMergeRule(new TokenMergeAlgorithm(), new SqlBuilderService()));
         return this;
     }
 

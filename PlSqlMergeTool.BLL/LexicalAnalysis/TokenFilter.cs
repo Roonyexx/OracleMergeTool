@@ -1,6 +1,4 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
-using PlSqlMergeTool.BLL.LexicalAnalysis;
+using System.Collections.Generic;
 using PlSqlMergeTool.BLL.Models;
 
 namespace PlSqlMergeTool.BLL.LexicalAnalysis;
@@ -19,8 +17,36 @@ public class TokenFilter(IEnumerable<TokenType> excludedTypes)
         _excludedTypes.Remove(type);
     }
     
-    public IEnumerable<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
+    public List<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
     {
-        return tokens.Where(t => !_excludedTypes.Contains(t.Type));
+        var cleanTokens = new List<PlSqlToken>();
+        var currentTrivia = new List<PlSqlToken>();
+
+        foreach (var token in tokens)
+        {
+            if (_excludedTypes.Contains(token.Type))
+            {
+                currentTrivia.Add(token);
+            }
+            else
+            {
+                token.LeadingTrivia = [.. currentTrivia];
+                currentTrivia.Clear();
+                cleanTokens.Add(token);
+            }
+        }
+
+        if (currentTrivia.Count > 0)
+        {
+            var eofToken = new PlSqlToken
+            {
+                Text = "",
+                Type = TokenType.Eof,
+                LeadingTrivia = currentTrivia
+            };
+            cleanTokens.Add(eofToken);
+        }
+
+        return cleanTokens;
     }
 }

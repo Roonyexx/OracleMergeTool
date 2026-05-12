@@ -1,3 +1,4 @@
+using PlSqlMergeTool.BLL.Services;
 namespace PlSqlMergeTool.BLL.MergeLogic;
 
 public abstract class MergeRuleHandler
@@ -58,15 +59,39 @@ public class BankModificationRule : MergeRuleHandler
     }
 }
 
-public class MergeConflictRule : MergeRuleHandler
+public class ThreeWayMergeRule : MergeRuleHandler
 {
+    private readonly ITokenMergeAlgorithm _mergeAlgorithm;
+    private readonly SqlBuilderService _builderService;
+
+    public ThreeWayMergeRule(ITokenMergeAlgorithm mergeAlgorithm, SqlBuilderService builderService)
+    {
+        _mergeAlgorithm = mergeAlgorithm;
+        _builderService = builderService;
+    }
+
     public override void Handle(MergeContext context)
     {
         if (context.HasLocalChanges && context.HasTargetChanges)
         {
-            context.MarkAsConflict();
+            var mergeResult = _mergeAlgorithm.MergeTokens(
+                context.Baseline.CleanTokens, 
+                context.Local.CleanTokens, 
+                context.Target.CleanTokens
+            );
+
+            if (mergeResult.HasUnresolvedConflicts)
+            {
+                context.MarkAsConflict();
+                return;
+            }
+
+            string resolvedCode = _builderService.BuildSql(mergeResult.ResolvedTokens);
+            
+            context.ResolveWith(MergeStatus.AutoMerged, resolvedCode);
             return;
         }
+
         base.Handle(context);
     }
 }
