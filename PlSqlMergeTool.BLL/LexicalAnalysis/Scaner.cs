@@ -124,6 +124,22 @@ public class Scanner(string input)
             return CreateToken(startOffset, startLine, TokenType.Operator);
         }
 
+        if (currentChar == '"')
+        {
+            _position++;
+            while (_position < _input.Length)
+            {
+                if (_input[_position] == '"')
+                {
+                    _position++;
+                    break;
+                }
+                if (_input[_position] == '\n') _currentLine++;
+                _position++;
+            }
+            return CreateToken(startOffset, startLine, TokenType.Word);
+        }
+
         // фоллбек для неизвестных символов
         _position++;
         return CreateToken(startOffset, startLine, TokenType.Unknown);
