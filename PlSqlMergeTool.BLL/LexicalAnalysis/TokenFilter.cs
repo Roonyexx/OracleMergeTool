@@ -17,34 +17,52 @@ public class TokenFilter(IEnumerable<TokenType> excludedTypes)
         _excludedTypes.Remove(type);
     }
     
-    public List<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
+public List<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
     {
         var cleanTokens = new List<PlSqlToken>();
-        var currentTrivia = new List<PlSqlToken>();
+        var currentLeading = new List<PlSqlToken>();
+        PlSqlToken? lastCleanToken = null;
+        bool newlineSeen = false;
 
         foreach (var token in tokens)
         {
             if (_excludedTypes.Contains(token.Type))
             {
-                currentTrivia.Add(token);
+                if (token.Text.Contains('\n')) newlineSeen = true;
+
+                // Если мы еще не перешли на новую строку, привязываем мусор к ПРЕДЫДУЩЕМУ токену
+                if (!newlineSeen && lastCleanToken != null)
+                {
+                    lastCleanToken.TrailingTrivia ??= [];
+                    lastCleanToken.TrailingTrivia.Add(token);
+                }
+                else
+                {
+                    // Иначе накапливаем для СЛЕДУЮЩЕГО токена
+                    currentLeading.Add(token);
+                }
             }
             else
             {
-                token.LeadingTrivia = [.. currentTrivia];
-                currentTrivia.Clear();
+                token.LeadingTrivia = currentLeading.Count > 0 ? [.. currentLeading] : null;
+                currentLeading.Clear();
                 cleanTokens.Add(token);
+                lastCleanToken = token;
+                newlineSeen = false; // Сбрасываем флаг переноса
             }
         }
 
-        if (currentTrivia.Count > 0)
+        if (currentLeading.Count > 0)
         {
-            var eofToken = new PlSqlToken
+            cleanTokens.Add(new PlSqlToken
             {
                 Text = "",
-                Type = TokenType.Eof,
-                LeadingTrivia = currentTrivia
-            };
-            cleanTokens.Add(eofToken);
+                Line = lastCleanToken?.Line ?? 0,
+                Offset = 0,
+                Length = 0,
+                Type = TokenType.Eof, // Безопасный маркер конца файла
+                LeadingTrivia = currentLeading
+            });
         }
 
         return cleanTokens;

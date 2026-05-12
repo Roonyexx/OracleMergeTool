@@ -74,11 +74,7 @@ public class ThreeWayMergeRule : MergeRuleHandler
     {
         if (context.HasLocalChanges && context.HasTargetChanges)
         {
-            var mergeResult = _mergeAlgorithm.MergeTokens(
-                context.Baseline.CleanTokens, 
-                context.Local.CleanTokens, 
-                context.Target.CleanTokens
-            );
+            var mergeResult = _mergeAlgorithm.MergeTokens(context);
 
             if (mergeResult.HasUnresolvedConflicts)
             {

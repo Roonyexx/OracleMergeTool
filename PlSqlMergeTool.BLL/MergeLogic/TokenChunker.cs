@@ -10,8 +10,9 @@ public class TokenChunker(SqlAnalyserService sqlAnalyserService) : IChunker
     private readonly SqlAnalyserService _sqlAnalyserService = sqlAnalyserService;
     public string[] Chunk(string text)
     {
-        var parsedDoc = _sqlAnalyserService.Tokenize(text);
-        return [.. parsedDoc.CleanTokens.Select(t => t.Text)];
+        // var parsedDoc = _sqlAnalyserService.Tokenize(text);
+        // return [.. parsedDoc.CleanTokens.Select(t => t.Text)];
+        return text.Split('\uFFFF');
     }
 
     IReadOnlyList<string> IChunker.Chunk(string text)

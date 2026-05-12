@@ -23,8 +23,12 @@ public class SqlDifferService
         var local = _sqlAnalyserService.Tokenize(localSql);
         var target = _sqlAnalyserService.Tokenize(targetSql);
 
-        var baseVsLocalDiff = _differ.CreateDiffs(baseline.OriginalText, local.OriginalText, false, true, _chunker);
-        var baseVsTargetDiff = _differ.CreateDiffs(baseline.OriginalText, target.OriginalText, false, true, _chunker);
+        string baseJoined = string.Join('\uFFFF', baseline.CleanTokens.Select(t => t.Text));
+        string localJoined = string.Join('\uFFFF', local.CleanTokens.Select(t => t.Text));
+        string targetJoined = string.Join('\uFFFF', target.CleanTokens.Select(t => t.Text));
+
+        var baseVsLocalDiff = _differ.CreateDiffs(baseJoined, localJoined, false, true, _chunker);
+        var baseVsTargetDiff = _differ.CreateDiffs(baseJoined, targetJoined, false, true, _chunker);
         return new MergeContext
         {
             FileName = filename,
