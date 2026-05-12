@@ -20,29 +20,35 @@ public class WorkspaceLoadService(IOracleRepository repository, SqlDifferService
         return _ddlAnalysisService.AnalyzeDdlChanges(localDdlTask.Result, targetDdlTask.Result);
     }
 
-    public async Task<List<MergeContext>> LoadPackagesAsync(WorkspaceConnectionConfig config)
+public async Task<List<MergeContext>> LoadPackagesAsync(WorkspaceConnectionConfig config)
+{
+    var contexts = new List<MergeContext>();
+    var packageNames = await Task.Run(() => _repository.GetPackageNames(config.LocalConnection));
+
+    var options = new ParallelOptions { MaxDegreeOfParallelism = 10 };
+
+    await Parallel.ForEachAsync(packageNames, options, async (name, ct) =>
     {
-        var contexts = new List<MergeContext>();
+        var baselineSqlTask = Task.Run(() => _repository.GetPackageSource(config.BaselineConnection, name));
+        var localSqlTask = Task.Run(() => _repository.GetPackageSource(config.LocalConnection, name));
+        var targetSqlTask = Task.Run(() => _repository.GetPackageSource(config.TargetConnection, name));
 
-        var packageNames = await Task.Run(() => _repository.GetPackageNames(config.LocalConnection));
+        await Task.WhenAll(baselineSqlTask, localSqlTask, targetSqlTask);
 
-        foreach (var name in packageNames)
+        var context = _differService.Diff(
+            filename: name,
+            baselineSql: baselineSqlTask.Result,
+            localSql: localSqlTask.Result,
+            targetSql: targetSqlTask.Result
+        );
+
+        lock (contexts)
         {
-            var baselineSql = await Task.Run(() => _repository.GetPackageSource(config.BaselineConnection, name));
-            var localSql = await Task.Run(() => _repository.GetPackageSource(config.LocalConnection, name));
-            var targetSql = await Task.Run(() => _repository.GetPackageSource(config.TargetConnection, name));
-
-            var context = _differService.Diff(
-                filename: name,
-                baselineSql: baselineSql,
-                localSql: localSql,
-                targetSql: targetSql
-            );
-
             contexts.Add(context);
         }
+    });
 
-        return contexts;
-    }
+    return contexts;
+}
 
 }
