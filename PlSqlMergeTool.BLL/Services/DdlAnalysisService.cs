@@ -14,8 +14,8 @@ public class DdlAnalysisService
     {
         var report = new DdlAnalysisReport();
 
-        var localDict = localMetadata.GroupBy(m => m.ObjectName).ToDictionary(g => g.Key, g => g.ToList());
-        var targetDict = targetMetadata.GroupBy(m => m.ObjectName).ToDictionary(g => g.Key, g => g.ToList());
+        var localDict = localMetadata.GroupBy(m => m.ObjectName).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+        var targetDict = targetMetadata.GroupBy(m => m.ObjectName).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
         var allObjectNames = localDict.Keys.Union(targetDict.Keys).Distinct();
 
@@ -72,8 +72,8 @@ public class DdlAnalysisService
     private List<ColumnDiff> GetColumnDifferences(List<TableColumnMetadata> local, List<TableColumnMetadata> target)
     {
         var diffs = new List<ColumnDiff>();
-        var localCols = local.ToDictionary(c => c.ColumnName);
-        var targetCols = target.ToDictionary(c => c.ColumnName);
+        var localCols = local.ToDictionary(c => c.ColumnName, StringComparer.OrdinalIgnoreCase);
+        var targetCols = target.ToDictionary(c => c.ColumnName, StringComparer.OrdinalIgnoreCase);
 
         foreach (var lCol in localCols.Values)
         {
