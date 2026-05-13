@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 using AvaloniaEdit;
-using PlSqlMergeTool.UI.Helpers; // Обязательно для DiffColorizer и DiffMapper
+using PlSqlMergeTool.UI.Helpers;
 using PlSqlMergeTool.UI.ViewModels;
 using PlSqlMergeTool.UI.ViewModels.Items;
 using System;
@@ -94,7 +94,6 @@ public partial class MainWindow : Window
         var targetRegions = DiffMapper.GetTargetRegions(package.Context);
         var resolvedRegions = DiffMapper.GetResolvedRegions(package.Context);
 
-        // 5. Внедряем новые колорайзеры в пайплайн рендеринга
         LocalEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(localRegions));
         TargetEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(targetRegions));
         ResolvedEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(resolvedRegions));

@@ -42,6 +42,7 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
+        //UI
         services.AddTransient<MainWindow>();
         services.AddTransient<MainWindowViewModel>();
 
@@ -52,8 +53,12 @@ public partial class App : Application
         services.AddTransient<WorkspaceLoadService>();
         services.AddTransient<PackagesMergeService>();
         services.AddTransient<SqlDifferService>();
+        services.AddTransient<SqlAnalyserService>();
+        services.AddTransient<DdlAnalysisService>();
+        services.AddTransient<SqlBuilderService>();
+        services.AddTransient<MergeRuleBuilder>();
 
-        services.AddTransient<Scanner>();
+        services.AddTransient<Scanner>(); 
         services.AddTransient<TokenFilter>(provider => 
         {
             var excludedTypes = new[] 
@@ -65,14 +70,26 @@ public partial class App : Application
             return new TokenFilter(excludedTypes);
         });
 
-        services.AddTransient<SqlAnalyserService>();
-        services.AddTransient<DdlAnalysisService>();
-        services.AddTransient<MergeResolverService>();
-        services.AddTransient<SqlBuilderService>();
-        services.AddTransient<MergeRuleBuilder>();
-        
         services.AddTransient<ITokenMergeAlgorithm, TokenMergeAlgorithm>();
         services.AddTransient<IDiffer, Differ>();
         services.AddTransient<IChunker, TokenChunker>();
+
+        services.AddTransient<MergeResolverService>(provider => 
+        {
+            var mergeAlgorithm = provider.GetRequiredService<ITokenMergeAlgorithm>();
+            var sqlBuilder = provider.GetRequiredService<SqlBuilderService>();
+
+            var resolver = new MergeResolverService();
+            
+            resolver.ConfigureRules(builder => 
+            {
+                builder.AddNoChangesRule()
+                       .AddVendorModificationRule()
+                       .AddBankModificationRule()
+                       .AddConflictRule(mergeAlgorithm, sqlBuilder);
+            });
+
+            return resolver;
+        });
     }
 }

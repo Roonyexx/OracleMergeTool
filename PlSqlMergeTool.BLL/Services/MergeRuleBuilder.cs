@@ -24,9 +24,9 @@ public class MergeRuleBuilder
         return this;
     }
 
-    public MergeRuleBuilder AddConflictRule()
+    public MergeRuleBuilder AddConflictRule(ITokenMergeAlgorithm mergeAlgorithm, SqlBuilderService builderService)
     {
-        _rules.Add(new ThreeWayMergeRule(new TokenMergeAlgorithm(), new SqlBuilderService()));
+        _rules.Add(new ThreeWayMergeRule(mergeAlgorithm, builderService));
         return this;
     }
 
