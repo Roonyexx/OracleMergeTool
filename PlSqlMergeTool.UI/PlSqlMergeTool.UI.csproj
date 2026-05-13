@@ -23,9 +23,11 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PlSqlMergeTool.BLL\PlSqlMergeTool.BLL.csproj" />
+    <ProjectReference Include="..\PlSqlMergeTool.DAL\PlSqlMergeTool.DAL.csproj" />
   </ItemGroup>
 </Project>

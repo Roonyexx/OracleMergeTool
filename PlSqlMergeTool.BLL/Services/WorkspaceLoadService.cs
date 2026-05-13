@@ -20,35 +20,35 @@ public class WorkspaceLoadService(IOracleRepository repository, SqlDifferService
         return _ddlAnalysisService.AnalyzeDdlChanges(localDdlTask.Result, targetDdlTask.Result);
     }
 
-public async Task<List<MergeContext>> LoadPackagesAsync(WorkspaceConnectionConfig config)
-{
-    var contexts = new List<MergeContext>();
-    var packageNames = await Task.Run(() => _repository.GetPackageNames(config.LocalConnection));
-
-    var options = new ParallelOptions { MaxDegreeOfParallelism = 10 };
-
-    await Parallel.ForEachAsync(packageNames, options, async (name, ct) =>
+    public async Task<List<MergeContext>> LoadPackagesAsync(WorkspaceConnectionConfig config)
     {
-        var baselineSqlTask = Task.Run(() => _repository.GetPackageSource(config.BaselineConnection, name));
-        var localSqlTask = Task.Run(() => _repository.GetPackageSource(config.LocalConnection, name));
-        var targetSqlTask = Task.Run(() => _repository.GetPackageSource(config.TargetConnection, name));
+        var contexts = new List<MergeContext>();
+        var packageNames = await Task.Run(() => _repository.GetPackageNames(config.LocalConnection));
 
-        await Task.WhenAll(baselineSqlTask, localSqlTask, targetSqlTask);
+        var options = new ParallelOptions { MaxDegreeOfParallelism = 10 };
 
-        var context = _differService.Diff(
-            filename: name,
-            baselineSql: baselineSqlTask.Result,
-            localSql: localSqlTask.Result,
-            targetSql: targetSqlTask.Result
-        );
-
-        lock (contexts)
+        await Parallel.ForEachAsync(packageNames, options, async (name, ct) =>
         {
-            contexts.Add(context);
-        }
-    });
+            var baselineSqlTask = Task.Run(() => _repository.GetPackageSource(config.BaselineConnection, name));
+            var localSqlTask = Task.Run(() => _repository.GetPackageSource(config.LocalConnection, name));
+            var targetSqlTask = Task.Run(() => _repository.GetPackageSource(config.TargetConnection, name));
 
-    return contexts;
-}
+            await Task.WhenAll(baselineSqlTask, localSqlTask, targetSqlTask);
+
+            var context = _differService.Diff(
+                filename: name,
+                baselineSql: baselineSqlTask.Result,
+                localSql: localSqlTask.Result,
+                targetSql: targetSqlTask.Result
+            );
+
+            lock (contexts)
+            {
+                contexts.Add(context);
+            }
+        });
+
+        return contexts;
+    }
 
 }

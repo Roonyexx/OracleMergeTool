@@ -13,6 +13,10 @@ public partial class PackageItemViewModel : ObservableObject
 
     public MergeStatus Status => Context.Status;
 
+    public string LocalText => Context.Local.OriginalText;
+    public string TargetText => Context.Target.OriginalText;
+
+    public string ResolvedText => Context.ResolvedCode ?? Context.Baseline.OriginalText;
     public PackageItemViewModel(MergeContext context)
     {
         Context = context;
@@ -22,6 +26,7 @@ public partial class PackageItemViewModel : ObservableObject
     {
         Context.ResolveWith(MergeStatus.AutoMerged, resolvedCode);
         OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(StatusIcon));
     }
 
     public string StatusIcon => Status switch

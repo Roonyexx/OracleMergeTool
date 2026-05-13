@@ -13,17 +13,36 @@ namespace PlSqlMergeTool.UI.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly WorkspaceLoadService _loadService;
+    private readonly PackagesMergeService _mergeService;
 
-    [ObservableProperty]
     private bool _isLoading;
+    public bool IsLoading
+    {
+        get => _isLoading;
+        set => SetProperty(ref _isLoading, value);
+    }
 
-    [ObservableProperty]
     private string _statusMessage = "Готов к работе";
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set => SetProperty(ref _statusMessage, value);
+    }
 
     public ObservableCollection<PackageItemViewModel> Packages { get; } = new();
 
-    [ObservableProperty]
     private PackageItemViewModel? _selectedPackage;
+    public PackageItemViewModel? SelectedPackage
+    {
+        get => _selectedPackage;
+        set
+        {
+            if (SetProperty(ref _selectedPackage, value))
+            {
+                CompilePackageCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
 
     // todo форма ввода конфига
     private readonly WorkspaceConnectionConfig _config = new()
@@ -33,36 +52,43 @@ public partial class MainWindowViewModel : ViewModelBase
         TargetConnection = "Data Source=...;User Id=...;Password=..."
     };
 
-    public MainWindowViewModel(WorkspaceLoadService loadService)
+    public IAsyncRelayCommand LoadWorkspaceCommand { get; }
+    public IAsyncRelayCommand CompilePackageCommand { get; }
+
+    public MainWindowViewModel(WorkspaceLoadService loadService, PackagesMergeService mergeService)
     {
         _loadService = loadService;
+        _mergeService = mergeService;
+
+        LoadWorkspaceCommand = new AsyncRelayCommand(LoadWorkspaceAsync);
+        CompilePackageCommand = new AsyncRelayCommand(CompilePackageAsync, CanCompile);
     }
 
-    /// <summary>
-    /// Команда загрузки рабочего пространства (вызывается кнопкой "Анализировать")
-    /// </summary>
-    [RelayCommand]
     private async Task LoadWorkspaceAsync()
     {
         try
         {
             IsLoading = true;
-            StatusMessage = "Загрузка и анализ пакетов...";
             Packages.Clear();
             SelectedPackage = null;
 
+            StatusMessage = "Этап 1/2: Выгрузка пакетов из БД...";
             var contexts = await _loadService.LoadPackagesAsync(_config);
+
+            StatusMessage = "Этап 2/2: Применение правил слияния...";
+
+            await Task.Run(() => _mergeService.ProcessPackages(contexts));
 
             foreach (var ctx in contexts)
             {
                 Packages.Add(new PackageItemViewModel(ctx));
             }
 
-            StatusMessage = $"Анализ завершен. Найдено пакетов: {Packages.Count}";
+            StatusMessage = $"Готово! Загружено пакетов: {Packages.Count}";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Ошибка загрузки: {ex.Message}";
+            StatusMessage = $"Ошибка: {ex.Message}";
         }
         finally
         {
@@ -70,7 +96,6 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanCompile))]
     private async Task CompilePackageAsync()
     {
         if (SelectedPackage == null) return;
@@ -82,10 +107,5 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool CanCompile()
     {
         return SelectedPackage != null && SelectedPackage.Status != MergeStatus.ManualConflict;
-    }
-
-    partial void OnSelectedPackageChanged(PackageItemViewModel? value)
-    {
-        CompilePackageCommand.NotifyCanExecuteChanged();
     }
 }
