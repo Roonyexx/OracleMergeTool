@@ -7,7 +7,7 @@ namespace PlSqlMergeTool.BLL.MergeLogic;
 public class TokenMergeResult
 {
     public List<PlSqlToken> ResolvedTokens { get; set; } = [];
-    public bool HasUnresolvedConflicts { get; set; }
+    public bool HasUnresolvedConflicts { get; set; }    
 }
 
 public class MergeEdit

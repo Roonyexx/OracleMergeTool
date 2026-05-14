@@ -106,8 +106,22 @@ public class PhantomLineTransformer : IBackgroundRenderer
         var document = textView.Document;
         if (document == null) return;
 
+        if (document.LineCount <= 0) return;
+
         var lastLine = document.GetLineByNumber(document.LineCount);
-        var lastLineBottom = textView.GetVisualPosition(new TextViewPosition(document.LineCount, 0), VisualYPosition.LineBottom);
+        var lastLineColumn = Math.Max(1, lastLine.Length + 1);
+
+        Point lastLineBottom;
+        try
+        {
+            lastLineBottom = textView.GetVisualPosition(
+                new TextViewPosition(lastLine.LineNumber, lastLineColumn),
+                VisualYPosition.LineBottom);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            lastLineBottom = new Point(0, textView.DocumentHeight);
+        }
 
         var lineHeight = textView.DefaultLineHeight;
         var phantomHeight = PhantomLineCount * lineHeight;

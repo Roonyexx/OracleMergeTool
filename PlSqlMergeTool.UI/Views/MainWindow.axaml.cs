@@ -94,11 +94,6 @@ public partial class MainWindow : Window
         ClearEditorDecorations(TargetEditor);
         ClearEditorDecorations(ResolvedEditor);
 
-        if (package?.Name == "TEST_CALCULATOR")
-        {
-            Console.WriteLine(package.Context.Local.OriginalText);
-        }
-
         if (package == null)
         {
             LocalEditor.Text = string.Empty;
