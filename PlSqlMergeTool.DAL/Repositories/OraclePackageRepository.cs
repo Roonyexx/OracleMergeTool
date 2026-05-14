@@ -49,7 +49,7 @@ public class OracleRepository : IOracleRepository // todo разделить п�
         
         const string sql = @"
             SELECT TEXT 
-            FROM ALL_SOURCE 
+            FROM USER_SOURCE 
             WHERE NAME = :PackageName 
               AND TYPE IN ('PACKAGE', 'PACKAGE BODY')
             ORDER BY TYPE, LINE"; 
