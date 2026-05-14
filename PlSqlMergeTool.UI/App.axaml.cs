@@ -50,6 +50,7 @@ public partial class App : Application
         services.AddTransient<IOracleRepository, OracleRepository>(); 
 
         //BLL
+        services.AddSingleton<IConfigService, ConfigService>();
         services.AddTransient<WorkspaceLoadService>();
         services.AddTransient<PackagesMergeService>();
         services.AddTransient<SqlDifferService>();

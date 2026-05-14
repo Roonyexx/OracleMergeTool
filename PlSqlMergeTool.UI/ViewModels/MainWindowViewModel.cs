@@ -17,6 +17,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly PackagesMergeService _mergeService;
     private readonly IConfigService _configService;
 
+    [ObservableProperty] private bool _isSettingsOpen;
+    [ObservableProperty] private SettingsViewModel? _currentSettingsVM;
+
     private bool _isLoading;
     public bool IsLoading
     {
@@ -46,16 +49,10 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    // todo форма ввода конфига
-    private readonly WorkspaceConnectionConfig _config = new()
-    {
-        BaselineConnection = "Data Source=...;User Id=...;Password=...",
-        LocalConnection = "Data Source=...;User Id=...;Password=...",
-        TargetConnection = "Data Source=...;User Id=...;Password=..."
-    };
-
     public IAsyncRelayCommand LoadWorkspaceCommand { get; }
     public IAsyncRelayCommand CompilePackageCommand { get; }
+    public IRelayCommand OpenSettingsCommand { get; }
+    public IRelayCommand CloseSettingsCommand { get; }
 
     public MainWindowViewModel(WorkspaceLoadService loadService, PackagesMergeService mergeService, IConfigService configService)
     {
@@ -65,6 +62,20 @@ public partial class MainWindowViewModel : ViewModelBase
 
         LoadWorkspaceCommand = new AsyncRelayCommand(LoadWorkspaceAsync);
         CompilePackageCommand = new AsyncRelayCommand(CompilePackageAsync, CanCompile);
+        OpenSettingsCommand = new RelayCommand(OpenSettings);
+        CloseSettingsCommand = new RelayCommand(CloseSettings);
+    }
+
+    private void OpenSettings()
+    {
+        CurrentSettingsVM = new SettingsViewModel(_configService, CloseSettings);
+        IsSettingsOpen = true;
+    }
+
+    private void CloseSettings()
+    {
+        IsSettingsOpen = false;
+        CurrentSettingsVM = null;
     }
 
     private async Task LoadWorkspaceAsync()
@@ -75,8 +86,10 @@ public partial class MainWindowViewModel : ViewModelBase
             Packages.Clear();
             SelectedPackage = null;
 
+            var config = _configService.LoadConfig();
+
             StatusMessage = "Этап 1/2: Выгрузка пакетов из БД...";
-            var contexts = await _loadService.LoadPackagesAsync(_config);
+            var contexts = await _loadService.LoadPackagesAsync(config);
 
             StatusMessage = "Этап 2/2: Применение правил слияния...";
 
