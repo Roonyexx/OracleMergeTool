@@ -3,7 +3,7 @@
         xmlns:vm="using:PlSqlMergeTool.UI.ViewModels"
         xmlns:views="using:PlSqlMergeTool.UI.Views"
         xmlns:items="using:PlSqlMergeTool.UI.ViewModels.Items"
-        xmlns:avalonEdit="https://github.com/avaloniaui/avaloniaedit"
+        xmlns:AvaloniaEdit="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         xmlns:converters="using:Avalonia.Data.Converters"
         x:Class="PlSqlMergeTool.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -159,7 +159,7 @@
 
                     <!-- Editors -->
                     <Border Grid.Row="1" Grid.Column="0" Classes="editor-container">
-                        <avalonEdit:TextEditor Name="LocalEditor"
+                        <AvaloniaEdit:TextEditor Name="LocalEditor"
                                                IsReadOnly="True"
                                                ShowLineNumbers="True"
                                                FontFamily="Cascadia Code,Consolas,Courier New"
@@ -172,7 +172,7 @@
                     <GridSplitter Grid.Row="1" Grid.Column="1" ResizeDirection="Columns" />
 
                     <Border Grid.Row="1" Grid.Column="2" Classes="editor-container">
-                        <avalonEdit:TextEditor Name="ResolvedEditor"
+                        <AvaloniaEdit:TextEditor Name="ResolvedEditor"
                                                ShowLineNumbers="True"
                                                FontFamily="Cascadia Code,Consolas,Courier New"
                                                FontSize="13"
@@ -184,7 +184,7 @@
                     <GridSplitter Grid.Row="1" Grid.Column="3" ResizeDirection="Columns" />
 
                     <Border Grid.Row="1" Grid.Column="4" Classes="editor-container">
-                        <avalonEdit:TextEditor Name="TargetEditor"
+                        <AvaloniaEdit:TextEditor Name="TargetEditor"
                                                IsReadOnly="True"
                                                ShowLineNumbers="True"
                                                FontFamily="Cascadia Code,Consolas,Courier New"

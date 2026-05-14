@@ -10,6 +10,7 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
 
         <!-- IDE Dark Theme -->
         <Style Selector="Window">
