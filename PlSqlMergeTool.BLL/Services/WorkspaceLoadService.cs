@@ -44,6 +44,13 @@ public class WorkspaceLoadService(IOracleRepository repository, SqlDifferService
 
             lock (contexts)
             {
+                // if(name == "TEST_CALCULATOR")
+                // {
+                //     Console.WriteLine($"Loaded package: {context.Baseline.OriginalText}");
+                //     Console.WriteLine($"Loaded package: {context.Local.OriginalText}");
+                //     Console.WriteLine($"Loaded package: {context.Target.OriginalText}");
+                // }
+
                 contexts.Add(context);
             }
         });

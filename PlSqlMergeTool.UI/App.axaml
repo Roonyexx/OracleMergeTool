@@ -2,14 +2,200 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="PlSqlMergeTool.UI.App"
              xmlns:local="using:PlSqlMergeTool.UI"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
-  
+
     <Application.Styles>
         <FluentTheme />
+
+        <!-- IDE Dark Theme -->
+        <Style Selector="Window">
+            <Setter Property="Background" Value="#1E1E1E"/>
+        </Style>
+
+        <!-- Toolbar Style -->
+        <Style Selector="Border.toolbar">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        </Style>
+
+        <!-- Sidebar Style -->
+        <Style Selector="Border.sidebar">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+        </Style>
+
+        <!-- Editor Container -->
+        <Style Selector="Border.editor-container">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+        </Style>
+
+        <!-- Status Bar -->
+        <Style Selector="Border.statusbar">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+
+        <!-- Editor Headers -->
+        <Style Selector="Border.editor-header">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+
+        <Style Selector="Border.editor-header.local">
+            <Setter Property="Background" Value="#1E3A5F"/>
+        </Style>
+
+        <Style Selector="Border.editor-header.resolved">
+            <Setter Property="Background" Value="#1E5F3A"/>
+        </Style>
+
+        <Style Selector="Border.editor-header.target">
+            <Setter Property="Background" Value="#5F3A1E"/>
+        </Style>
+
+        <!-- TextBlocks in headers -->
+        <Style Selector="Border.editor-header TextBlock">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <!-- ListBox Styles -->
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2A2D2E"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#094771"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
+            <Setter Property="Background" Value="#0E639C"/>
+        </Style>
+
+        <Style Selector="ListBoxItem TextBlock">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+        </Style>
+
+        <!-- Button Styles -->
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#0E639C"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+
+        <Style Selector="Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1177BB"/>
+        </Style>
+
+        <Style Selector="Button:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#0D5A8F"/>
+        </Style>
+
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="#16825D"/>
+        </Style>
+
+        <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1A9870"/>
+        </Style>
+
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="#3E3E42"/>
+        </Style>
+
+        <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#505052"/>
+        </Style>
+
+        <!-- TextBlock Styles -->
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+        </Style>
+
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="#858585"/>
+        </Style>
+
+        <Style Selector="TextBlock.header">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <!-- HeaderedContentControl -->
+        <Style Selector="HeaderedContentControl">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="#252526" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="3">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Background="#2D2D30" Padding="8,6" BorderBrush="#3E3E42" BorderThickness="0,0,0,1">
+                                <TextBlock Text="{TemplateBinding Header}" FontWeight="SemiBold" Foreground="#CCCCCC" FontSize="12"/>
+                            </Border>
+                            <ContentPresenter Content="{TemplateBinding Content}" Padding="4"/>
+                        </DockPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <!-- GridSplitter -->
+        <Style Selector="GridSplitter">
+            <Setter Property="Background" Value="#3E3E42"/>
+        </Style>
+
+        <!-- ProgressBar -->
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="#007ACC"/>
+            <Setter Property="Background" Value="#3E3E42"/>
+        </Style>
+
+        <!-- ScrollBar -->
+        <Style Selector="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+
+        <Style Selector="ScrollBar:vertical">
+            <Setter Property="Width" Value="14"/>
+        </Style>
+
+        <Style Selector="ScrollBar:horizontal">
+            <Setter Property="Height" Value="14"/>
+        </Style>
+
+        <Style Selector="ScrollBar /template/ RepeatButton">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+
+        <Style Selector="ScrollBar /template/ Thumb">
+            <Setter Property="Background" Value="#424242"/>
+        </Style>
+
+        <Style Selector="ScrollBar /template/ Thumb:pointerover">
+            <Setter Property="Background" Value="#4E4E4E"/>
+        </Style>
+
+        <Style Selector="ScrollBar /template/ Thumb:pressed">
+            <Setter Property="Background" Value="#5A5A5A"/>
+        </Style>
+
     </Application.Styles>
 </Application>

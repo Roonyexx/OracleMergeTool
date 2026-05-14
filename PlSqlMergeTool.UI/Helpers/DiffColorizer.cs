@@ -7,36 +7,49 @@ using System.Linq;
 
 namespace PlSqlMergeTool.UI.Helpers;
 
-public class DiffColorizer(List<HighlightRegion> regions) : DocumentColorizingTransformer
+public class DiffColorizer : DocumentColorizingTransformer
 {
-    private readonly List<HighlightRegion> _regions = regions;
+    private readonly List<HighlightRegion> _regions;
+
+    private static readonly SolidColorBrush AddedLineBrush = new(Color.FromArgb(40, 76, 175, 80));
+    private static readonly SolidColorBrush DeletedLineBrush = new(Color.FromArgb(40, 244, 67, 54));
+    private static readonly SolidColorBrush ConflictLineBrush = new(Color.FromArgb(50, 255, 152, 0));
+
+    private static readonly SolidColorBrush AddedTextBrush = new(Color.FromArgb(80, 76, 175, 80));
+    private static readonly SolidColorBrush DeletedTextBrush = new(Color.FromArgb(80, 244, 67, 54));
+    private static readonly SolidColorBrush ConflictTextBrush = new(Color.FromArgb(100, 255, 152, 0));
+
+    public DiffColorizer(List<HighlightRegion> regions)
+    {
+        _regions = regions ?? new List<HighlightRegion>();
+    }
 
     protected override void ColorizeLine(DocumentLine line)
     {
-        if (_regions == null || _regions.Count == 0 || line.Length == 0) return;
+        if (_regions.Count == 0 || line.Length == 0) return;
 
         int lineStart = line.Offset;
         int lineEnd = line.Offset + line.Length;
 
-        var intersectingRegions = _regions.Where(r => 
-            r.StartOffset < lineEnd && 
-            (r.StartOffset + r.Length) > lineStart).ToList();
+        var intersectingRegions = _regions
+            .Where(r => r.StartOffset < lineEnd && (r.StartOffset + r.Length) > lineStart)
+            .ToList();
 
         if (intersectingRegions.Count == 0) return;
 
+        // Apply line background
+        var lineChangeType = intersectingRegions.First().Type;
+        var lineBrush = GetLineBrush(lineChangeType);
 
-        var lineChangeType = intersectingRegions.First().Type; 
-
-        ChangeLinePart(lineStart, lineEnd, element =>
+        if (lineBrush != null)
         {
-            if (lineChangeType == HighlightType.Added)
-                element.TextRunProperties.SetBackgroundBrush(new SolidColorBrush(Color.FromArgb(30, 0, 255, 0)));
-            else if (lineChangeType == HighlightType.Deleted)
-                element.TextRunProperties.SetBackgroundBrush(new SolidColorBrush(Color.FromArgb(30, 255, 0, 0)));
-            else if (lineChangeType == HighlightType.Conflict)
-                element.TextRunProperties.SetBackgroundBrush(new SolidColorBrush(Color.FromArgb(40, 255, 165, 0)));
-        });
+            ChangeLinePart(lineStart, lineEnd, element =>
+            {
+                element.TextRunProperties.SetBackgroundBrush(lineBrush);
+            });
+        }
 
+        // Apply text highlighting for specific regions
         foreach (var region in intersectingRegions)
         {
             int start = Math.Max(lineStart, region.StartOffset);
@@ -44,18 +57,37 @@ public class DiffColorizer(List<HighlightRegion> regions) : DocumentColorizingTr
 
             if (start < end)
             {
-                ChangeLinePart(start, end, element =>
+                var textBrush = GetTextBrush(region.Type);
+                if (textBrush != null)
                 {
-                    element.TextRunProperties.SetTextDecorations(TextDecorations.Underline);
-                    
-                    // if (region.Type == HighlightType.Added)
-                    //     element.TextRunProperties.SetBackgroundBrush(new SolidColorBrush(Color.FromArgb(80, 0, 255, 0))); 
-                    // else if (region.Type == HighlightType.Deleted)
-                    //     element.TextRunProperties.SetBackgroundBrush(new SolidColorBrush(Color.FromArgb(80, 255, 0, 0)));
-                    // else if (region.Type == HighlightType.Conflict)
-                    //     element.TextRunProperties.SetBackgroundBrush(new SolidColorBrush(Color.FromArgb(100, 255, 165, 0)));
-                });
+                    ChangeLinePart(start, end, element =>
+                    {
+                        element.TextRunProperties.SetBackgroundBrush(textBrush);
+                    });
+                }
             }
         }
+    }
+
+    private static SolidColorBrush? GetLineBrush(HighlightType type)
+    {
+        return type switch
+        {
+            HighlightType.Added => AddedLineBrush,
+            HighlightType.Deleted => DeletedLineBrush,
+            HighlightType.Conflict => ConflictLineBrush,
+            _ => null
+        };
+    }
+
+    private static SolidColorBrush? GetTextBrush(HighlightType type)
+    {
+        return type switch
+        {
+            HighlightType.Added => AddedTextBrush,
+            HighlightType.Deleted => DeletedTextBrush,
+            HighlightType.Conflict => ConflictTextBrush,
+            _ => null
+        };
     }
 }

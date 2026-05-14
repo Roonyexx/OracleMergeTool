@@ -9,14 +9,15 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="Oracle PL/SQL Merge Tool"
-        Width="1400" Height="800">
+        Width="1600" Height="900"
+        Background="#1E1E1E">
 
-    <Grid ColumnDefinitions="350, 4, *">
+    <Grid RowDefinitions="Auto, *, Auto">
 
         <!-- Settings Overlay -->
-        <Panel Grid.ColumnSpan="3"
+        <Panel Grid.RowSpan="3"
                IsVisible="{Binding IsSettingsOpen}"
-               Background="#80000000"
+               Background="#CC000000"
                ZIndex="1000">
             <ContentControl Content="{Binding CurrentSettingsVM}"
                             HorizontalAlignment="Center"
@@ -29,97 +30,211 @@
             </ContentControl>
         </Panel>
 
-        <Grid Grid.Column="0" RowDefinitions="Auto, *, 4, 1.5*" Margin="5">
-            
-            <StackPanel Grid.Row="0" Spacing="5" Margin="0,0,0,10">
-                <Button Command="{Binding OpenSettingsCommand}"
-                        Content="⚙️ Настройки подключений"
-                        HorizontalAlignment="Stretch" />
-                <Button Command="{Binding LoadWorkspaceCommand}"
-                        Content="Анализировать рабочее пространство"
-                        HorizontalAlignment="Stretch" />
-                <Button Command="{Binding CompilePackageCommand}"
-                        Content="Скомпилировать выбранный пакет"
-                        HorizontalAlignment="Stretch"
-                        Classes="accent" />
-                
-                <TextBlock Text="{Binding StatusMessage}" 
-                           TextWrapping="Wrap" 
-                           FontSize="12"
-                           FontWeight="SemiBold" 
-                           Margin="0,5,0,0"/>
-                <ProgressBar IsIndeterminate="True" 
-                             IsVisible="{Binding IsLoading}" 
-                             Height="4" />
-            </StackPanel>
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Classes="toolbar">
+            <Grid ColumnDefinitions="Auto, *, Auto" Margin="8,4">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <Button Command="{Binding LoadWorkspaceCommand}"
+                            Content="📁 Загрузить"
+                            ToolTip.Tip="Анализировать рабочее пространство" />
+                    <Button Command="{Binding CompilePackageCommand}"
+                            Content="▶ Компилировать"
+                            Classes="accent"
+                            ToolTip.Tip="Скомпилировать выбранный пакет" />
+                    <Border Width="1" Background="#3E3E42" Margin="4,0"/>
+                    <Button Command="{Binding OpenSettingsCommand}"
+                            Content="⚙"
+                            Classes="secondary"
+                            ToolTip.Tip="Настройки подключений" />
+                </StackPanel>
 
-            <HeaderedContentControl Grid.Row="1" Header="DDL Изменения">
-                <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
-                    <TextBlock Text="Список изменений DDL появится здесь" 
-                               Margin="10" Foreground="Gray" FontSize="11"
-                               VerticalAlignment="Center" HorizontalAlignment="Center"
-                               TextWrapping="Wrap" TextAlignment="Center"/>
-                </Border>
-            </HeaderedContentControl>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding SelectedPackage.Name}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"
+                           FontWeight="SemiBold"
+                           FontSize="13"
+                           Foreground="#CCCCCC" />
 
-            <GridSplitter Grid.Row="2" Background="Transparent" ResizeDirection="Rows"/>
-
-            <HeaderedContentControl Grid.Row="3" Header="Пакеты PL/SQL">
-                <ListBox ItemsSource="{Binding Packages}" 
-                         SelectedItem="{Binding SelectedPackage}"
-                         BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="items:PackageItemViewModel">
-                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="2">
-                                <TextBlock Text="{Binding StatusIcon}" />
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </HeaderedContentControl>
-        </Grid>
-
-        <GridSplitter Grid.Column="1" Background="#E0E0E0" ResizeDirection="Columns" />
-
-        <Grid Grid.Column="2">
-            <Grid IsVisible="{Binding SelectedPackage, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
-                  RowDefinitions="Auto, *"
-                  ColumnDefinitions="*, 30, 1.5*, 30, *">
-
-                <Border Grid.Row="0" Grid.Column="0" Background="#F5F5F5" Padding="5" BorderThickness="0,0,0,1" BorderBrush="LightGray">
-                    <TextBlock Text="LOCAL (Банк)" FontWeight="Bold" HorizontalAlignment="Center" FontSize="11"/>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="2" Background="#E3F2FD" Padding="5" BorderThickness="0,0,0,1" BorderBrush="LightGray">
-                    <TextBlock Text="RESOLVED (Итоговый код)" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#1565C0" FontSize="11"/>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="4" Background="#F5F5F5" Padding="5" BorderThickness="0,0,0,1" BorderBrush="LightGray">
-                    <TextBlock Text="TARGET (Вендор)" FontWeight="Bold" HorizontalAlignment="Center" FontSize="11"/>
-                </Border>
-
-                <avalonEdit:TextEditor Name="LocalEditor" Grid.Row="1" Grid.Column="0"
-                                       IsReadOnly="True" ShowLineNumbers="True" 
-                                       FontFamily="Consolas,Monospace" FontSize="13" />
-
-                <Border Grid.Row="1" Grid.Column="1" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="1,0"/>
-
-                <avalonEdit:TextEditor Name="ResolvedEditor" Grid.Row="1" Grid.Column="2"
-                                       ShowLineNumbers="True" 
-                                       FontFamily="Consolas,Monospace" FontSize="13" />
-
-                <Border Grid.Row="1" Grid.Column="3" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="1,0"/>
-
-                <avalonEdit:TextEditor Name="TargetEditor" Grid.Row="1" Grid.Column="4"
-                                       IsReadOnly="True" ShowLineNumbers="True" 
-                                       FontFamily="Consolas,Monospace" FontSize="13" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <ProgressBar IsIndeterminate="True"
+                                 IsVisible="{Binding IsLoading}"
+                                 Width="120" Height="4"
+                                 VerticalAlignment="Center" />
+                </StackPanel>
             </Grid>
+        </Border>
 
-            <StackPanel IsVisible="{Binding SelectedPackage, Converter={x:Static converters:ObjectConverters.IsNull}}"
-                        VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
-                <TextBlock Text="📂" FontSize="48" HorizontalAlignment="Center" Opacity="0.5"/>
-                <TextBlock Text="Выберите пакет из списка слева для начала работы" 
-                           FontSize="16" Foreground="Gray" />
-            </StackPanel>
+        <!-- Main Content -->
+        <Grid Grid.Row="1" ColumnDefinitions="300, 4, *">
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Classes="sidebar" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto, *, 4, 1.5*" Margin="8">
+
+                    <!-- Workspace Info -->
+                    <Border Grid.Row="0"
+                            Background="#2D2D30"
+                            BorderBrush="#3E3E42"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            Padding="8"
+                            Margin="0,0,0,8">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Рабочее пространство"
+                                       Classes="header"
+                                       FontSize="11"/>
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       TextWrapping="Wrap"
+                                       FontSize="11"
+                                       Classes="muted" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- DDL Changes Panel -->
+                    <HeaderedContentControl Grid.Row="1" Header="DDL Изменения">
+                        <Border Background="#1E1E1E" Padding="8">
+                            <TextBlock Text="Список изменений DDL появится здесь"
+                                       Classes="muted"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center" />
+                        </Border>
+                    </HeaderedContentControl>
+
+                    <GridSplitter Grid.Row="2" ResizeDirection="Rows" />
+
+                    <!-- Packages Panel -->
+                    <HeaderedContentControl Grid.Row="3" Header="Пакеты PL/SQL">
+                        <ListBox ItemsSource="{Binding Packages}"
+                                 SelectedItem="{Binding SelectedPackage}"
+                                 Background="#1E1E1E">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="items:PackageItemViewModel">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding StatusIcon}" FontSize="14" />
+                                        <TextBlock Text="{Binding Name}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </HeaderedContentControl>
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+            <!-- Editor Area -->
+            <Grid Grid.Column="2">
+                <!-- Editors -->
+                <Grid IsVisible="{Binding SelectedPackage, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                      RowDefinitions="Auto, *"
+                      ColumnDefinitions="*, 2, *, 2, *">
+
+                    <!-- Editor Headers -->
+                    <Border Grid.Row="0" Grid.Column="0" Classes="editor-header local" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="🏦" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="LOCAL (Банк)" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="2" Classes="editor-header resolved" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="✓" FontSize="14" VerticalAlignment="Center" Foreground="#4EC9B0"/>
+                            <TextBlock Text="RESOLVED (Итоговый код)" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="4" Classes="editor-header target" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="🏢" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="TARGET (Вендор)" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Editors -->
+                    <Border Grid.Row="1" Grid.Column="0" Classes="editor-container">
+                        <avalonEdit:TextEditor Name="LocalEditor"
+                                               IsReadOnly="True"
+                                               ShowLineNumbers="True"
+                                               FontFamily="Cascadia Code,Consolas,Courier New"
+                                               FontSize="13"
+                                               Background="#1E1E1E"
+                                               Foreground="#D4D4D4"
+                                               LineNumbersForeground="#858585" />
+                    </Border>
+
+                    <GridSplitter Grid.Row="1" Grid.Column="1" ResizeDirection="Columns" />
+
+                    <Border Grid.Row="1" Grid.Column="2" Classes="editor-container">
+                        <avalonEdit:TextEditor Name="ResolvedEditor"
+                                               ShowLineNumbers="True"
+                                               FontFamily="Cascadia Code,Consolas,Courier New"
+                                               FontSize="13"
+                                               Background="#1E1E1E"
+                                               Foreground="#D4D4D4"
+                                               LineNumbersForeground="#858585" />
+                    </Border>
+
+                    <GridSplitter Grid.Row="1" Grid.Column="3" ResizeDirection="Columns" />
+
+                    <Border Grid.Row="1" Grid.Column="4" Classes="editor-container">
+                        <avalonEdit:TextEditor Name="TargetEditor"
+                                               IsReadOnly="True"
+                                               ShowLineNumbers="True"
+                                               FontFamily="Cascadia Code,Consolas,Courier New"
+                                               FontSize="13"
+                                               Background="#1E1E1E"
+                                               Foreground="#D4D4D4"
+                                               LineNumbersForeground="#858585" />
+                    </Border>
+                </Grid>
+
+                <!-- Empty State -->
+                <StackPanel IsVisible="{Binding SelectedPackage, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Spacing="16">
+                    <TextBlock Text="📂" FontSize="64" HorizontalAlignment="Center" Opacity="0.3"/>
+                    <TextBlock Text="Выберите пакет из списка слева"
+                               FontSize="16"
+                               Classes="muted"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="или нажмите 'Загрузить' для анализа рабочего пространства"
+                               FontSize="13"
+                               Classes="muted"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
         </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Classes="statusbar">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="White"
+                               FontSize="11"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16">
+                    <TextBlock VerticalAlignment="Center" Foreground="White" FontSize="11">
+                        <Run Text="Пакетов: "/>
+                        <Run Text="{Binding Packages.Count}" FontWeight="Bold"/>
+                    </TextBlock>
+                    <TextBlock Text="Oracle PL/SQL Merge Tool v1.0"
+                               Foreground="White"
+                               FontSize="11"
+                               Opacity="0.8"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

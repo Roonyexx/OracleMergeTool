@@ -9,38 +9,59 @@ namespace PlSqlMergeTool.UI.Views;
 
 public partial class MainWindow : Window
 {
-    private bool _isSyncingScroll = false;
-    
+    private readonly SynchronizedEditorManager _syncManager;
     private MainWindowViewModel? _currentViewModel;
 
     public MainWindow()
     {
         InitializeComponent();
-        
-        SetupSynchronizedScrolling();
 
+        _syncManager = new SynchronizedEditorManager();
+
+        SetupEditors();
         DataContextChanged += OnDataContextChanged;
     }
 
-    private void SetupSynchronizedScrolling()
+    private void SetupEditors()
     {
-        LocalEditor.TextArea.TextView.ScrollOffsetChanged += (s, e) => SyncScroll(LocalEditor);
-        ResolvedEditor.TextArea.TextView.ScrollOffsetChanged += (s, e) => SyncScroll(ResolvedEditor);
-        TargetEditor.TextArea.TextView.ScrollOffsetChanged += (s, e) => SyncScroll(TargetEditor);
+        // Apply syntax highlighting
+        var highlighting = PlSqlSyntaxHighlighting.LoadPlSqlHighlighting();
+        LocalEditor.SyntaxHighlighting = highlighting;
+        ResolvedEditor.SyntaxHighlighting = highlighting;
+        TargetEditor.SyntaxHighlighting = highlighting;
+
+        // Configure editor options
+        ConfigureEditor(LocalEditor);
+        ConfigureEditor(ResolvedEditor);
+        ConfigureEditor(TargetEditor);
+
+        // Register for synchronized scrolling
+        _syncManager.RegisterEditor(LocalEditor);
+        _syncManager.RegisterEditor(ResolvedEditor);
+        _syncManager.RegisterEditor(TargetEditor);
     }
 
-    private void SyncScroll(TextEditor source)
+    private void ConfigureEditor(TextEditor editor)
     {
-        if (_isSyncingScroll) return;
-        _isSyncingScroll = true;
+        editor.Options.ShowSpaces = false;
+        editor.Options.ShowTabs = false;
+        editor.Options.ShowEndOfLine = false;
+        editor.Options.ShowBoxForControlCharacters = true;
+        editor.Options.EnableHyperlinks = false;
+        editor.Options.EnableEmailHyperlinks = false;
+        editor.Options.HighlightCurrentLine = true;
+        editor.Options.EnableRectangularSelection = true;
+        editor.Options.EnableTextDragDrop = false;
+        editor.Options.CutCopyWholeLine = true;
+        editor.Options.AllowScrollBelowDocument = true;
+        editor.Options.IndentationSize = 4;
+        editor.Options.ConvertTabsToSpaces = true;
 
-        double offset = source.VerticalOffset;
-
-        if (source != LocalEditor) LocalEditor.ScrollToVerticalOffset(offset);
-        if (source != ResolvedEditor) ResolvedEditor.ScrollToVerticalOffset(offset);
-        if (source != TargetEditor) TargetEditor.ScrollToVerticalOffset(offset);
-
-        _isSyncingScroll = false;
+        // Set editor appearance
+        editor.TextArea.TextView.CurrentLineBackground = new Avalonia.Media.SolidColorBrush(
+            Avalonia.Media.Color.FromArgb(25, 255, 255, 255));
+        editor.TextArea.TextView.CurrentLineBorder = new Avalonia.Media.Pen(
+            new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromArgb(40, 255, 255, 255)), 1);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -55,7 +76,6 @@ public partial class MainWindow : Window
         if (_currentViewModel != null)
         {
             _currentViewModel.PropertyChanged += OnViewModelPropertyChanged;
-            
             LoadPackageIntoEditors(_currentViewModel.SelectedPackage);
         }
     }
@@ -70,9 +90,14 @@ public partial class MainWindow : Window
 
     private void LoadPackageIntoEditors(PackageItemViewModel? package)
     {
-        ClearDiffColorizers(LocalEditor);
-        ClearDiffColorizers(TargetEditor);
-        ClearDiffColorizers(ResolvedEditor);
+        ClearEditorDecorations(LocalEditor);
+        ClearEditorDecorations(TargetEditor);
+        ClearEditorDecorations(ResolvedEditor);
+
+        if (package?.Name == "TEST_CALCULATOR")
+        {
+            Console.WriteLine(package.Context.Local.OriginalText);
+        }
 
         if (package == null)
         {
@@ -90,19 +115,34 @@ public partial class MainWindow : Window
         ResolvedEditor.ScrollToHome();
         TargetEditor.ScrollToHome();
 
+        // Synchronize line heights with phantom lines
+        _syncManager.SynchronizeLineHeights();
+
+        // Apply diff highlighting
         var localRegions = DiffMapper.GetLocalRegions(package.Context);
         var targetRegions = DiffMapper.GetTargetRegions(package.Context);
         var resolvedRegions = DiffMapper.GetResolvedRegions(package.Context);
 
-        LocalEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(localRegions));
-        TargetEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(targetRegions));
-        ResolvedEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(resolvedRegions));
+        if (localRegions.Count > 0)
+        {
+            LocalEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(localRegions));
+        }
+
+        if (targetRegions.Count > 0)
+        {
+            TargetEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(targetRegions));
+        }
+
+        if (resolvedRegions.Count > 0)
+        {
+            ResolvedEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(resolvedRegions));
+        }
     }
 
-    private void ClearDiffColorizers(TextEditor editor)
+    private void ClearEditorDecorations(TextEditor editor)
     {
         var transformers = editor.TextArea.TextView.LineTransformers;
-        
+
         for (int i = transformers.Count - 1; i >= 0; i--)
         {
             if (transformers[i] is DiffColorizer)
@@ -110,5 +150,11 @@ public partial class MainWindow : Window
                 transformers.RemoveAt(i);
             }
         }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _syncManager.Dispose();
+        base.OnClosed(e);
     }
 }
