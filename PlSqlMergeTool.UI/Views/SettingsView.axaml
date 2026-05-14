@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PlSqlMergeTool.UI.ViewModels"
+             x:Class="PlSqlMergeTool.UI.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <Border Background="White" 
+            CornerRadius="8" 
+            Padding="20" 
+            MinWidth="450"
+            BoxShadow="0 4 20 0 #40000000"
+            BorderBrush="#E0E0E0"
+            BorderThickness="1">
+        <StackPanel Spacing="15">
+            <TextBlock Text="Настройки подключений" FontSize="18" FontWeight="Bold"/>
+            
+            <StackPanel Spacing="5">
+                <TextBlock Text="Baseline (Эталон):" FontSize="12" Foreground="Gray"/>
+                <TextBox Text="{Binding BaselineConnection}" Watermark="Data Source=..."/>
+            </StackPanel>
+
+            <StackPanel Spacing="5">
+                <TextBlock Text="Local (Банк):" FontSize="12" Foreground="Gray"/>
+                <TextBox Text="{Binding LocalConnection}" Watermark="Data Source=..."/>
+            </StackPanel>
+
+            <StackPanel Spacing="5">
+                <TextBlock Text="Target (Вендор):" FontSize="12" Foreground="Gray"/>
+                <TextBox Text="{Binding TargetConnection}" Watermark="Data Source=..."/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
+                <Button Content="Отмена" Command="{Binding $parent[Window].DataContext.CloseSettingsCommand}"/>
+                <Button Content="Сохранить" Classes="accent" Command="{Binding SaveCommand}"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

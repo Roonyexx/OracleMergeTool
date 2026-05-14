@@ -7,6 +7,7 @@ using PlSqlMergeTool.BLL.Models;
 using PlSqlMergeTool.BLL.Services;
 using PlSqlMergeTool.BLL.MergeLogic;
 using PlSqlMergeTool.UI.ViewModels.Items;
+using PlSqlMergeTool.BLL.Interfaces;
 
 namespace PlSqlMergeTool.UI.ViewModels;
 
@@ -14,6 +15,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly WorkspaceLoadService _loadService;
     private readonly PackagesMergeService _mergeService;
+    private readonly IConfigService _configService;
 
     private bool _isLoading;
     public bool IsLoading
@@ -55,10 +57,11 @@ public partial class MainWindowViewModel : ViewModelBase
     public IAsyncRelayCommand LoadWorkspaceCommand { get; }
     public IAsyncRelayCommand CompilePackageCommand { get; }
 
-    public MainWindowViewModel(WorkspaceLoadService loadService, PackagesMergeService mergeService)
+    public MainWindowViewModel(WorkspaceLoadService loadService, PackagesMergeService mergeService, IConfigService configService)
     {
         _loadService = loadService;
         _mergeService = mergeService;
+        _configService = configService;
 
         LoadWorkspaceCommand = new AsyncRelayCommand(LoadWorkspaceAsync);
         CompilePackageCommand = new AsyncRelayCommand(CompilePackageAsync, CanCompile);
