@@ -1,4 +1,5 @@
 using System.Text;
+using System.Linq;
 using Dapper;
 using Oracle.ManagedDataAccess.Client;
 using PlSqlMergeTool.BLL.Interfaces;
@@ -36,7 +37,7 @@ public class OracleRepository : IOracleRepository // todo разделить п�
         
         const string sql = @"
             SELECT DISTINCT NAME 
-            FROM ALL_SOURCE 
+            FROM USER_SOURCE 
             WHERE TYPE IN ('PACKAGE', 'PACKAGE BODY')
             ORDER BY NAME";
             
@@ -47,14 +48,26 @@ public class OracleRepository : IOracleRepository // todo разделить п�
     {
         using var connection = new OracleConnection(connectionString);
         
-        const string sql = @"
+        const string userSql = @"
             SELECT TEXT 
             FROM USER_SOURCE 
             WHERE NAME = :PackageName 
               AND TYPE IN ('PACKAGE', 'PACKAGE BODY')
             ORDER BY TYPE, LINE"; 
 
-        var lines = connection.Query<string>(sql, new { PackageName = packageName });
+        var lines = connection.Query<string>(userSql, new { PackageName = packageName }).ToList();
+
+        if (lines.Count == 0)
+        {
+            const string allSql = @"
+                SELECT TEXT
+                FROM ALL_SOURCE
+                WHERE NAME = :PackageName
+                  AND TYPE IN ('PACKAGE', 'PACKAGE BODY')
+                ORDER BY OWNER, TYPE, LINE";
+
+            lines = connection.Query<string>(allSql, new { PackageName = packageName }).ToList();
+        }
         
         var sb = new StringBuilder();
         foreach (var line in lines)
