@@ -12,12 +12,13 @@ public class WorkspaceLoadService(IOracleRepository repository, SqlDifferService
 
     public async Task<DdlAnalysisReport> LoadDdlReportAsync(WorkspaceConnectionConfig config)
     {
+        var baselineDdlTask = Task.Run(() => _repository.GetSchemaTablesMetadata(config.BaselineConnection));
         var localDdlTask = Task.Run(() => _repository.GetSchemaTablesMetadata(config.LocalConnection));
         var targetDdlTask = Task.Run(() => _repository.GetSchemaTablesMetadata(config.TargetConnection));
 
         await Task.WhenAll(localDdlTask, targetDdlTask);
 
-        return _ddlAnalysisService.AnalyzeDdlChanges(localDdlTask.Result, targetDdlTask.Result);
+        return _ddlAnalysisService.AnalyzeDdlChanges(baselineDdlTask.Result, localDdlTask.Result, targetDdlTask.Result);
     }
 
     public async Task<List<MergeContext>> LoadPackagesAsync(WorkspaceConnectionConfig config)

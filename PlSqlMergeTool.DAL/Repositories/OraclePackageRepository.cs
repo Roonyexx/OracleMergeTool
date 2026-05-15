@@ -83,10 +83,16 @@ public class OracleRepository : IOracleRepository // todo разделить п�
         using var connection = new OracleConnection(connectionString);
         
         const string sql = @"
-            SELECT c.TABLE_NAME as ObjectName, 
+            SELECT 
+                c.TABLE_NAME as ObjectName, 
                 o.OBJECT_TYPE as ObjectType,
                 c.COLUMN_NAME as ColumnName, 
-                c.DATA_TYPE as DataType 
+                c.DATA_TYPE as DataType,
+                c.DATA_LENGTH as DataLength,
+                c.DATA_PRECISION as DataPrecision,
+                c.DATA_SCALE as DataScale,
+                c.NULLABLE as Nullable,
+                c.DATA_DEFAULT as DataDefault
             FROM USER_TAB_COLUMNS c
             JOIN USER_OBJECTS o ON c.TABLE_NAME = o.OBJECT_NAME
             WHERE o.OBJECT_TYPE IN ('TABLE', 'VIEW')

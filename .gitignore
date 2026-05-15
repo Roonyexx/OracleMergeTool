@@ -2,3 +2,4 @@ bin/
 obj/
 *.md
 .VSCodeCounter/
+*.lscache
