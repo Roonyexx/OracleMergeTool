@@ -7,97 +7,62 @@ namespace PlSqlMergeTool.UI.Helpers;
 
 public static class DiffMapper
 {
-    public static List<HighlightRegion> GetRegionsFromTokens(
-        IEnumerable<PlSqlToken> tokens, 
-        HighlightType targetType)
+    public static List<HighlightRegion> GetRegionsFromTokens(IEnumerable<PlSqlToken> tokens, HighlightType targetType)
     {
-        var regions = tokens
-            .OrderBy(t => t.Offset)
-            .Select(t => new HighlightRegion
-            {
-                StartOffset = t.Offset,
-                Length = t.Length,
-                Type = targetType
-            })
+        if (!tokens.Any()) return new List<HighlightRegion>();
+
+        var changedLines = tokens
+            .Select(t => t.Line)
+            .Distinct()
+            .OrderBy(l => l)
             .ToList();
 
-        return MergeAdjacentRegions(regions);
-    }
+        var regions = new List<HighlightRegion>();
+        int start = changedLines[0];
+        int end = changedLines[0];
 
-    private static List<HighlightRegion> MergeAdjacentRegions(List<HighlightRegion> regions)
-    {
-        if (regions.Count == 0) return regions;
-
-        var merged = new List<HighlightRegion>();
-        var current = regions[0];
-
-        for (int i = 1; i < regions.Count; i++)
+        for (int i = 1; i < changedLines.Count; i++)
         {
-            var next = regions[i];
-            
-            if (current.StartOffset + current.Length >= next.StartOffset - 5) 
+            if (changedLines[i] == end + 1)
             {
-                current = new HighlightRegion
-                {
-                    StartOffset = current.StartOffset,
-                    Length = next.StartOffset + next.Length - current.StartOffset,
-                    Type = current.Type
-                };
+                end = changedLines[i];
             }
             else
             {
-                merged.Add(current);
-                current = next;
+                regions.Add(new HighlightRegion { StartLine = start, EndLine = 1000, Type = targetType });
+                start = changedLines[i];
+                end = changedLines[i];
             }
         }
-        merged.Add(current);
+        regions.Add(new HighlightRegion { StartLine = start, EndLine = end, Type = targetType });
 
-        return merged;
+        return regions;
     }
 
     public static List<HighlightRegion> GetLocalRegions(MergeContext context)
     {
         var changedTokens = new List<PlSqlToken>();
-        
         foreach (var block in context.BaseVsLocalDiff.DiffBlocks)
         {
             if (block.InsertCountB > 0)
-            {
-                var tokens = context.Local.CleanTokens.GetRange(block.InsertStartB, block.InsertCountB);
-                changedTokens.AddRange(tokens);
-            }
+                changedTokens.AddRange(context.Local.CleanTokens.GetRange(block.InsertStartB, block.InsertCountB));
         }
-
         return GetRegionsFromTokens(changedTokens, HighlightType.Added); 
     }
-
 
     public static List<HighlightRegion> GetTargetRegions(MergeContext context)
     {
         var changedTokens = new List<PlSqlToken>();
-
-        // Перебираем блоки отличий между Baseline и Target
         foreach (var block in context.BaseVsTargetDiff.DiffBlocks)
         {
             if (block.InsertCountB > 0)
-            {
-                var tokens = context.Target.CleanTokens.GetRange(block.InsertStartB, block.InsertCountB);
-                changedTokens.AddRange(tokens);
-            }
+                changedTokens.AddRange(context.Target.CleanTokens.GetRange(block.InsertStartB, block.InsertCountB));
         }
-
         return GetRegionsFromTokens(changedTokens, HighlightType.Added);
     }
 
-
     public static List<HighlightRegion> GetResolvedRegions(MergeContext context)
     {
-        // Если конфликтов нет, ничего не подсвечиваем в центральном окне
-        if (context.Status != MergeStatus.ManualConflict || context.ResolvedCode == null) 
-            return new List<HighlightRegion>();
-
-        // todo
-        // в TokenMergeResult, можно будет вытягивать пересекующиеся регионы.
-        return new List<HighlightRegion>();
+        return new List<HighlightRegion>(); 
     }
 }

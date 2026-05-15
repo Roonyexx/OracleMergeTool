@@ -10,7 +10,7 @@ public enum HighlightType
 
 public class HighlightRegion
 {
-    public int StartOffset { get; init; }
-    public int Length { get; init; }
-    public HighlightType Type { get; init; }
+    public int StartLine { get; set; }
+    public int EndLine { get; set; }
+    public HighlightType Type { get; set; }
 }

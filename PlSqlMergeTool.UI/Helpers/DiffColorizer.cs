@@ -1,7 +1,6 @@
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,13 +10,10 @@ public class DiffColorizer : DocumentColorizingTransformer
 {
     private readonly List<HighlightRegion> _regions;
 
+    // Сделали цвета чуть прозрачнее, чтобы текст читался лучше
     private static readonly SolidColorBrush AddedLineBrush = new(Color.FromArgb(40, 76, 175, 80));
     private static readonly SolidColorBrush DeletedLineBrush = new(Color.FromArgb(40, 244, 67, 54));
     private static readonly SolidColorBrush ConflictLineBrush = new(Color.FromArgb(50, 255, 152, 0));
-
-    private static readonly SolidColorBrush AddedTextBrush = new(Color.FromArgb(80, 76, 175, 80));
-    private static readonly SolidColorBrush DeletedTextBrush = new(Color.FromArgb(80, 244, 67, 54));
-    private static readonly SolidColorBrush ConflictTextBrush = new(Color.FromArgb(100, 255, 152, 0));
 
     public DiffColorizer(List<HighlightRegion> regions)
     {
@@ -28,43 +24,22 @@ public class DiffColorizer : DocumentColorizingTransformer
     {
         if (_regions.Count == 0 || line.Length == 0) return;
 
-        int lineStart = line.Offset;
-        int lineEnd = line.Offset + line.Length;
+        int currentLineNumber = line.LineNumber;
 
-        var intersectingRegions = _regions
-            .Where(r => r.StartOffset < lineEnd && (r.StartOffset + r.Length) > lineStart)
-            .ToList();
+        // Ищем, попадает ли номер текущей строки в интервал изменений
+        var region = _regions.FirstOrDefault(r => currentLineNumber >= r.StartLine && currentLineNumber <= r.EndLine);
 
-        if (intersectingRegions.Count == 0) return;
-
-        // Apply line background
-        var lineChangeType = intersectingRegions.First().Type;
-        var lineBrush = GetLineBrush(lineChangeType);
-
-        if (lineBrush != null)
+        if (region != null)
         {
-            ChangeLinePart(lineStart, lineEnd, element =>
-            {
-                element.TextRunProperties.SetBackgroundBrush(lineBrush);
-            });
-        }
+            var lineBrush = GetLineBrush(region.Type);
 
-        // Apply text highlighting for specific regions
-        foreach (var region in intersectingRegions)
-        {
-            int start = Math.Max(lineStart, region.StartOffset);
-            int end = Math.Min(lineEnd, region.StartOffset + region.Length);
-
-            if (start < end)
+            if (lineBrush != null)
             {
-                var textBrush = GetTextBrush(region.Type);
-                if (textBrush != null)
+                // Закрашиваем всю строку (от начала и до самого конца)
+                ChangeLinePart(line.Offset, line.Offset + line.Length, element =>
                 {
-                    ChangeLinePart(start, end, element =>
-                    {
-                        element.TextRunProperties.SetBackgroundBrush(textBrush);
-                    });
-                }
+                    element.TextRunProperties.SetBackgroundBrush(lineBrush);
+                });
             }
         }
     }
@@ -76,17 +51,6 @@ public class DiffColorizer : DocumentColorizingTransformer
             HighlightType.Added => AddedLineBrush,
             HighlightType.Deleted => DeletedLineBrush,
             HighlightType.Conflict => ConflictLineBrush,
-            _ => null
-        };
-    }
-
-    private static SolidColorBrush? GetTextBrush(HighlightType type)
-    {
-        return type switch
-        {
-            HighlightType.Added => AddedTextBrush,
-            HighlightType.Deleted => DeletedTextBrush,
-            HighlightType.Conflict => ConflictTextBrush,
             _ => null
         };
     }
