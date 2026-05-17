@@ -93,15 +93,110 @@
 
                     <!-- DDL Changes Panel -->
                     <HeaderedContentControl Grid.Row="1" Header="DDL Изменения">
-                        <Border Background="#1E1E1E" Padding="8">
-                            <TextBlock Text="Список изменений DDL появится здесь"
-                                       Classes="muted"
-                                       FontSize="11"
-                                       TextWrapping="Wrap"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"
-                                       TextAlignment="Center" />
-                        </Border>
+                        <Grid>
+                            <!-- DDL Changes List -->
+                            <ScrollViewer IsVisible="{Binding DdlChanges.Count, Converter={x:Static converters:ObjectConverters.IsNotNull}}"
+                                          Background="#1E1E1E">
+                                <ItemsControl ItemsSource="{Binding DdlChanges}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="items:DdlChangeItemViewModel">
+                                            <Border Background="#252526"
+                                                    BorderBrush="#3E3E42"
+                                                    BorderThickness="0,0,0,1"
+                                                    Padding="8,6">
+                                                <StackPanel Spacing="4">
+                                                    <!-- Object Header -->
+                                                    <Grid ColumnDefinitions="Auto, *, Auto">
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                                                            <TextBlock Text="{Binding Icon}" FontSize="12" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding DisplayText}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="11"
+                                                                       VerticalAlignment="Center"/>
+                                                        </StackPanel>
+
+                                                        <Border Grid.Column="2"
+                                                                Background="{Binding SourceColor}"
+                                                                CornerRadius="2"
+                                                                Padding="4,2"
+                                                                IsVisible="{Binding Source, Converter={x:Static converters:ObjectConverters.IsNotNull}}">
+                                                            <TextBlock Text="{Binding SourceText}"
+                                                                       FontSize="9"
+                                                                       FontWeight="Bold"
+                                                                       Foreground="White"/>
+                                                        </Border>
+                                                    </Grid>
+
+                                                    <!-- Summary -->
+                                                    <TextBlock Text="{Binding Summary}"
+                                                               FontSize="10"
+                                                               Classes="muted"
+                                                               Margin="18,0,0,0"/>
+
+                                                    <!-- Column Changes -->
+                                                    <ItemsControl ItemsSource="{Binding ColumnChanges}"
+                                                                  Margin="18,4,0,0"
+                                                                  IsVisible="{Binding ColumnChanges.Count, Converter={x:Static converters:ObjectConverters.IsNotNull}}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="items:ColumnChangeItemViewModel">
+                                                                <Border Background="#2D2D30"
+                                                                        CornerRadius="2"
+                                                                        Padding="6,4"
+                                                                        Margin="0,2">
+                                                                    <Grid RowDefinitions="Auto, Auto">
+                                                                        <!-- Column Name -->
+                                                                        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto">
+                                                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                                                                <TextBlock Text="{Binding Icon}" FontSize="10"/>
+                                                                                <TextBlock Text="{Binding ColumnName}"
+                                                                                           FontFamily="Cascadia Code,Consolas"
+                                                                                           FontSize="10"
+                                                                                           FontWeight="SemiBold"/>
+                                                                            </StackPanel>
+
+                                                                            <Border Grid.Column="2"
+                                                                                    Background="{Binding SourceColor}"
+                                                                                    CornerRadius="2"
+                                                                                    Padding="3,1">
+                                                                                <TextBlock Text="{Binding SourceText}"
+                                                                                           FontSize="8"
+                                                                                           FontWeight="Bold"
+                                                                                           Foreground="White"/>
+                                                                            </Border>
+                                                                        </Grid>
+
+                                                                        <!-- Column Details -->
+                                                                        <TextBlock Grid.Row="1"
+                                                                                   Text="{Binding DetailedInfo}"
+                                                                                   FontSize="9"
+                                                                                   Classes="muted"
+                                                                                   Margin="14,2,0,0"
+                                                                                   TextWrapping="Wrap"/>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <!-- Empty State -->
+                            <Border IsVisible="{Binding DdlChanges.Count, Converter={x:Static converters:ObjectConverters.IsNull}}"
+                                    Background="#1E1E1E"
+                                    Padding="8">
+                                <TextBlock Text="Нет DDL изменений"
+                                           Classes="muted"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center" />
+                            </Border>
+                        </Grid>
                     </HeaderedContentControl>
 
                     <GridSplitter Grid.Row="2" ResizeDirection="Rows" />

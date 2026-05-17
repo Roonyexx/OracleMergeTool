@@ -7,7 +7,6 @@ namespace PlSqlMergeTool.BLL.Services;
 
 public class DdlAnalysisService
 {
-    // ТЕПЕРЬ ПРИНИМАЕМ 3 ИСТОЧНИКА!
     public DdlAnalysisReport AnalyzeDdlChanges(
         IEnumerable<TableColumnMetadata> baselineMetadata,
         IEnumerable<TableColumnMetadata> localMetadata, 

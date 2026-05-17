@@ -35,6 +35,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public ObservableCollection<PackageItemViewModel> Packages { get; } = new();
+    public ObservableCollection<DdlChangeItemViewModel> DdlChanges { get; } = new();
 
     private PackageItemViewModel? _selectedPackage;
     public PackageItemViewModel? SelectedPackage
@@ -47,6 +48,13 @@ public partial class MainWindowViewModel : ViewModelBase
                 CompilePackageCommand.NotifyCanExecuteChanged();
             }
         }
+    }
+
+    private DdlChangeItemViewModel? _selectedDdlChange;
+    public DdlChangeItemViewModel? SelectedDdlChange
+    {
+        get => _selectedDdlChange;
+        set => SetProperty(ref _selectedDdlChange, value);
     }
 
     public IAsyncRelayCommand LoadWorkspaceCommand { get; }
@@ -84,15 +92,24 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             IsLoading = true;
             Packages.Clear();
+            DdlChanges.Clear();
             SelectedPackage = null;
+            SelectedDdlChange = null;
 
             var config = _configService.LoadConfig();
 
-            StatusMessage = "Этап 1/2: Выгрузка пакетов из БД...";
+            StatusMessage = "Этап 1/3: Анализ DDL изменений...";
+            var ddlReport = await _loadService.LoadDdlReportAsync(config);
+
+            foreach (var diff in ddlReport.ObjectDifferences)
+            {
+                DdlChanges.Add(new DdlChangeItemViewModel(diff));
+            }
+
+            StatusMessage = "Этап 2/3: Выгрузка пакетов из БД...";
             var contexts = await _loadService.LoadPackagesAsync(config);
 
-            StatusMessage = "Этап 2/2: Применение правил слияния...";
-
+            StatusMessage = "Этап 3/3: Применение правил слияния...";
             await Task.Run(() => _mergeService.ProcessPackages(contexts));
 
             foreach (var ctx in contexts)
@@ -100,7 +117,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 Packages.Add(new PackageItemViewModel(ctx));
             }
 
-            StatusMessage = $"Готово! Загружено пакетов: {Packages.Count}";
+            StatusMessage = $"Готово! DDL изменений: {DdlChanges.Count}, Пакетов: {Packages.Count}";
         }
         catch (Exception ex)
         {

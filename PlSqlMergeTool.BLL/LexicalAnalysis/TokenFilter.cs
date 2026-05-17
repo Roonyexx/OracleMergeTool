@@ -30,7 +30,6 @@ public List<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
             {
                 if (token.Text.Contains('\n')) newlineSeen = true;
 
-                // Если мы еще не перешли на новую строку, привязываем мусор к ПРЕДЫДУЩЕМУ токену
                 if (!newlineSeen && lastCleanToken != null)
                 {
                     lastCleanToken.TrailingTrivia ??= [];
@@ -38,7 +37,6 @@ public List<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
                 }
                 else
                 {
-                    // Иначе накапливаем для СЛЕДУЮЩЕГО токена
                     currentLeading.Add(token);
                 }
             }
@@ -48,7 +46,7 @@ public List<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
                 currentLeading.Clear();
                 cleanTokens.Add(token);
                 lastCleanToken = token;
-                newlineSeen = false; // Сбрасываем флаг переноса
+                newlineSeen = false;
             }
         }
 
@@ -60,7 +58,7 @@ public List<PlSqlToken> FilterTokens(IEnumerable<PlSqlToken> tokens)
                 Line = lastCleanToken?.Line ?? 0,
                 Offset = 0,
                 Length = 0,
-                Type = TokenType.Eof, // Безопасный маркер конца файла
+                Type = TokenType.Eof,
                 LeadingTrivia = currentLeading
             });
         }
