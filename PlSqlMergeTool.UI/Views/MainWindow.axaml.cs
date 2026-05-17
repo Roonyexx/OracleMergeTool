@@ -4,6 +4,7 @@ using PlSqlMergeTool.UI.Helpers;
 using PlSqlMergeTool.UI.ViewModels;
 using PlSqlMergeTool.UI.ViewModels.Items;
 using System;
+using System.Linq;
 
 namespace PlSqlMergeTool.UI.Views;
 
@@ -35,6 +36,8 @@ public partial class MainWindow : Window
         ConfigureEditor(ResolvedEditor);
         ConfigureEditor(TargetEditor);
 
+        // LocalEditor.InsertPhantomSpace(insertAfterLine: 5, emptyLinesCount: 3);
+
         // Register for synchronized scrolling
         _syncManager.RegisterEditor(LocalEditor);
         _syncManager.RegisterEditor(ResolvedEditor);
@@ -56,6 +59,11 @@ public partial class MainWindow : Window
         editor.Options.AllowScrollBelowDocument = true;
         editor.Options.IndentationSize = 4;
         editor.Options.ConvertTabsToSpaces = true;
+
+        editor.ShowLineNumbers = false;
+
+        var diffMargin = new DiffLineNumberMargin();
+        editor.TextArea.LeftMargins.Insert(0, diffMargin);
 
         // Set editor appearance
         editor.TextArea.TextView.CurrentLineBackground = new Avalonia.Media.SolidColorBrush(
@@ -88,11 +96,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ClearPhantomLines(TextEditor editor)
+    {
+        var margin = editor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
+        if (margin != null)
+        {
+            margin.PhantomLines.Clear();
+            margin.InvalidateVisual();
+        }
+    }
+
     private void LoadPackageIntoEditors(PackageItemViewModel? package)
     {
         ClearEditorDecorations(LocalEditor);
         ClearEditorDecorations(TargetEditor);
         ClearEditorDecorations(ResolvedEditor);
+
+        ClearPhantomLines(LocalEditor);
+        ClearPhantomLines(TargetEditor);
+        ClearPhantomLines(ResolvedEditor);
 
         if (package == null)
         {
@@ -110,13 +132,32 @@ public partial class MainWindow : Window
         ResolvedEditor.ScrollToHome();
         TargetEditor.ScrollToHome();
 
-        // Synchronize line heights with phantom lines
+        LocalEditor.InsertPhantomSpace(insertAfterLine: 5, emptyLinesCount: 3);
+        
+
         _syncManager.SynchronizeLineHeights();
 
-        // Apply diff highlighting
         var localRegions = DiffMapper.GetLocalRegions(package.Context);
         var targetRegions = DiffMapper.GetTargetRegions(package.Context);
         var resolvedRegions = DiffMapper.GetResolvedRegions(package.Context);
+
+        var localMargin = LocalEditor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
+        if (localMargin != null)
+        {
+            RegionMapper.ShiftRegions(localRegions, localMargin.PhantomLines);
+        }
+        
+        var targetMargin = TargetEditor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
+        if (targetMargin != null)
+        {
+            RegionMapper.ShiftRegions(targetRegions, targetMargin.PhantomLines);
+        }
+
+        var resolvedMargin = ResolvedEditor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
+        if (resolvedMargin != null)
+        {
+            RegionMapper.ShiftRegions(resolvedRegions, resolvedMargin.PhantomLines);
+        }
 
         if (localRegions.Count > 0)
         {
