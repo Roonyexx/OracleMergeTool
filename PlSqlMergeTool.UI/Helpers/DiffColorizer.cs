@@ -5,12 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace PlSqlMergeTool.UI.Helpers;
-
+// больше не используется, пока как Legacy висит 
 public class DiffColorizer : DocumentColorizingTransformer
 {
     private readonly List<HighlightRegion> _regions;
 
-    // Сделали цвета чуть прозрачнее, чтобы текст читался лучше
     private static readonly SolidColorBrush AddedLineBrush = new(Color.FromArgb(40, 76, 175, 80));
     private static readonly SolidColorBrush DeletedLineBrush = new(Color.FromArgb(40, 244, 67, 54));
     private static readonly SolidColorBrush ConflictLineBrush = new(Color.FromArgb(50, 255, 152, 0));
@@ -26,7 +25,6 @@ public class DiffColorizer : DocumentColorizingTransformer
 
         int currentLineNumber = line.LineNumber;
 
-        // Ищем, попадает ли номер текущей строки в интервал изменений
         var region = _regions.FirstOrDefault(r => currentLineNumber >= r.StartLine && currentLineNumber <= r.EndLine);
 
         if (region != null)

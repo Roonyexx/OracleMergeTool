@@ -4,6 +4,7 @@ using PlSqlMergeTool.UI.Helpers;
 using PlSqlMergeTool.UI.ViewModels;
 using PlSqlMergeTool.UI.ViewModels.Items;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace PlSqlMergeTool.UI.Views;
@@ -25,20 +26,15 @@ public partial class MainWindow : Window
 
     private void SetupEditors()
     {
-        // Apply syntax highlighting
         var highlighting = PlSqlSyntaxHighlighting.LoadPlSqlHighlighting();
         LocalEditor.SyntaxHighlighting = highlighting;
         ResolvedEditor.SyntaxHighlighting = highlighting;
         TargetEditor.SyntaxHighlighting = highlighting;
 
-        // Configure editor options
         ConfigureEditor(LocalEditor);
         ConfigureEditor(ResolvedEditor);
         ConfigureEditor(TargetEditor);
 
-        // LocalEditor.InsertPhantomSpace(insertAfterLine: 5, emptyLinesCount: 3);
-
-        // Register for synchronized scrolling
         _syncManager.RegisterEditor(LocalEditor);
         _syncManager.RegisterEditor(ResolvedEditor);
         _syncManager.RegisterEditor(TargetEditor);
@@ -65,7 +61,6 @@ public partial class MainWindow : Window
         var diffMargin = new DiffLineNumberMargin();
         editor.TextArea.LeftMargins.Insert(0, diffMargin);
 
-        // Set editor appearance
         editor.TextArea.TextView.CurrentLineBackground = new Avalonia.Media.SolidColorBrush(
             Avalonia.Media.Color.FromArgb(25, 255, 255, 255));
         editor.TextArea.TextView.CurrentLineBorder = new Avalonia.Media.Pen(
@@ -132,59 +127,69 @@ public partial class MainWindow : Window
         ResolvedEditor.ScrollToHome();
         TargetEditor.ScrollToHome();
 
-        LocalEditor.InsertPhantomSpace(insertAfterLine: 5, emptyLinesCount: 3);
+        List<SyncBlock> syncBlocks = DiffMapper.BuildSyncBlocks(package.Context);
         
-
-        _syncManager.SynchronizeLineHeights();
+        var calculator = new EditorAlignmentCalculator();
+        var gaps = calculator.CalculateGaps(syncBlocks);
 
         var localRegions = DiffMapper.GetLocalRegions(package.Context);
         var targetRegions = DiffMapper.GetTargetRegions(package.Context);
         var resolvedRegions = DiffMapper.GetResolvedRegions(package.Context);
 
-        var localMargin = LocalEditor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
-        if (localMargin != null)
-        {
-            RegionMapper.ShiftRegions(localRegions, localMargin.PhantomLines);
-        }
-        
-        var targetMargin = TargetEditor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
-        if (targetMargin != null)
-        {
-            RegionMapper.ShiftRegions(targetRegions, targetMargin.PhantomLines);
-        }
+        ApplyGapsToEditor(LocalEditor, gaps.LocalGaps);
+        ApplyGapsToEditor(TargetEditor, gaps.TargetGaps);
+        ApplyGapsToEditor(ResolvedEditor, gaps.ResolvedGaps);
 
-        var resolvedMargin = ResolvedEditor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
-        if (resolvedMargin != null)
-        {
-            RegionMapper.ShiftRegions(resolvedRegions, resolvedMargin.PhantomLines);
-        }
+        ShiftRegionsForEditor(LocalEditor, localRegions);
+        ShiftRegionsForEditor(TargetEditor, targetRegions);
+        ShiftRegionsForEditor(ResolvedEditor, resolvedRegions);
 
         if (localRegions.Count > 0)
-        {
-            LocalEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(localRegions));
-        }
+            LocalEditor.TextArea.TextView.BackgroundRenderers.Add(new DiffBackgroundRenderer(LocalEditor.TextArea.TextView, localRegions));
 
         if (targetRegions.Count > 0)
-        {
-            TargetEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(targetRegions));
-        }
+            TargetEditor.TextArea.TextView.BackgroundRenderers.Add(new DiffBackgroundRenderer(TargetEditor.TextArea.TextView, targetRegions));
 
         if (resolvedRegions.Count > 0)
+            ResolvedEditor.TextArea.TextView.BackgroundRenderers.Add(new DiffBackgroundRenderer(ResolvedEditor.TextArea.TextView, resolvedRegions));
+
+    }
+
+    private void ApplyGapsToEditor(TextEditor editor, Dictionary<int, int> gaps)
+    {
+        if (gaps == null || gaps.Count == 0) return;
+
+        var sortedGaps = gaps.OrderByDescending(g => g.Key);
+        
+        foreach (var gap in sortedGaps)
         {
-            ResolvedEditor.TextArea.TextView.LineTransformers.Add(new DiffColorizer(resolvedRegions));
+            editor.InsertPhantomSpace(gap.Key, gap.Value);
+        }
+    }
+
+    private void ShiftRegionsForEditor(TextEditor editor, List<HighlightRegion> regions)
+    {
+        if (regions == null || regions.Count == 0) return;
+
+        var margin = editor.TextArea.LeftMargins.OfType<DiffLineNumberMargin>().FirstOrDefault();
+        if (margin != null && margin.PhantomLines.Count > 0)
+        {
+            RegionMapper.ShiftRegions(regions, margin.PhantomLines);
         }
     }
 
     private void ClearEditorDecorations(TextEditor editor)
     {
         var transformers = editor.TextArea.TextView.LineTransformers;
-
         for (int i = transformers.Count - 1; i >= 0; i--)
         {
-            if (transformers[i] is DiffColorizer)
-            {
-                transformers.RemoveAt(i);
-            }
+            if (transformers[i] is DiffColorizer) transformers.RemoveAt(i);
+        }
+
+        var renderers = editor.TextArea.TextView.BackgroundRenderers;
+        for (int i = renderers.Count - 1; i >= 0; i--)
+        {
+            if (renderers[i] is DiffBackgroundRenderer) renderers.RemoveAt(i);
         }
     }
 

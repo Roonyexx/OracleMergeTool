@@ -9,7 +9,6 @@ public static class RegionMapper
     {
         if (phantomLines == null || phantomLines.Count == 0) return;
 
-        // Сортируем фантомные строки по возрастанию для правильного алгоритма сдвига
         var sortedPhantoms = phantomLines.OrderBy(p => p).ToList();
 
         foreach (var region in regions)

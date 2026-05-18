@@ -1,8 +1,5 @@
 using Avalonia;
-using Avalonia.Media;
 using AvaloniaEdit;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +9,7 @@ namespace PlSqlMergeTool.UI.Helpers;
 public sealed class SynchronizedEditorManager : IDisposable
 {
     private readonly List<TextEditor> _editors = new();
-    private readonly Dictionary<TextEditor, PhantomLineTransformer> _transformers = new();
+    
     private bool _isSyncing;
 
     public void RegisterEditor(TextEditor editor)
@@ -20,66 +17,52 @@ public sealed class SynchronizedEditorManager : IDisposable
         if (_editors.Contains(editor)) return;
 
         _editors.Add(editor);
-        editor.TextArea.TextView.ScrollOffsetChanged += OnScrollOffsetChanged;
-
-        var transformer = new PhantomLineTransformer();
-        _transformers[editor] = transformer;
-        editor.TextArea.TextView.BackgroundRenderers.Add(transformer);
+        if (editor.TextArea?.TextView != null)
+        {
+            editor.TextArea.TextView.ScrollOffsetChanged += OnScrollOffsetChanged;
+        }
     }
 
     public void UnregisterEditor(TextEditor editor)
     {
         if (!_editors.Contains(editor)) return;
 
-        editor.TextArea.TextView.ScrollOffsetChanged -= OnScrollOffsetChanged;
-
-        if (_transformers.TryGetValue(editor, out var transformer))
+        if (editor.TextArea?.TextView != null)
         {
-            editor.TextArea.TextView.BackgroundRenderers.Remove(transformer);
-            _transformers.Remove(editor);
+            editor.TextArea.TextView.ScrollOffsetChanged -= OnScrollOffsetChanged;
         }
 
         _editors.Remove(editor);
-    }
-
-    public void SynchronizeLineHeights()
-    {
-        if (_editors.Count == 0) return;
-
-        var maxLines = _editors.Max(e => e.Document.LineCount);
-
-        foreach (var editor in _editors)
-        {
-            var currentLines = editor.Document.LineCount;
-            var phantomLines = maxLines - currentLines;
-
-            if (_transformers.TryGetValue(editor, out var transformer))
-            {
-                transformer.PhantomLineCount = phantomLines;
-                editor.TextArea.TextView.Redraw();
-            }
-        }
     }
 
     private void OnScrollOffsetChanged(object? sender, EventArgs e)
     {
         if (_isSyncing) return;
 
-        var sourceEditor = _editors.FirstOrDefault(ed => ed.TextArea.TextView == sender);
+        var sourceView = sender as AvaloniaEdit.Rendering.TextView;
+        if (sourceView == null) return;
+
+        var sourceEditor = _editors.FirstOrDefault(ed => ed.TextArea?.TextView == sourceView);
         if (sourceEditor == null) return;
 
         _isSyncing = true;
-
-        var offset = sourceEditor.VerticalOffset;
-        foreach (var editor in _editors)
+        try
         {
-            if (editor != sourceEditor)
+            var offset = sourceView.ScrollOffset;
+
+            foreach (var editor in _editors)
             {
-                editor.ScrollToVerticalOffset(offset);
+                if (editor != sourceEditor && editor.TextArea?.TextView != null)
+                {
+                    editor.ScrollToHorizontalOffset(offset.X);
+                    editor.ScrollToVerticalOffset(offset.Y);
+                }
             }
         }
-
-        _isSyncing = false;
+        finally
+        {
+            _isSyncing = false;
+        }
     }
 
     public void Dispose()
@@ -89,47 +72,5 @@ public sealed class SynchronizedEditorManager : IDisposable
             UnregisterEditor(editor);
         }
         _editors.Clear();
-        _transformers.Clear();
-    }
-}
-
-public class PhantomLineTransformer : IBackgroundRenderer
-{
-    public int PhantomLineCount { get; set; }
-
-    public KnownLayer Layer => KnownLayer.Background;
-
-    public void Draw(TextView textView, DrawingContext drawingContext)
-    {
-        if (PhantomLineCount <= 0) return;
-
-        var document = textView.Document;
-        if (document == null) return;
-
-        if (document.LineCount <= 0) return;
-
-        var lastLine = document.GetLineByNumber(document.LineCount);
-        var lastLineColumn = Math.Max(1, lastLine.Length + 1);
-
-        Point lastLineBottom;
-        try
-        {
-            lastLineBottom = textView.GetVisualPosition(
-                new TextViewPosition(lastLine.LineNumber, lastLineColumn),
-                VisualYPosition.LineBottom);
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            lastLineBottom = new Point(0, textView.DocumentHeight);
-        }
-
-        var lineHeight = textView.DefaultLineHeight;
-        var phantomHeight = PhantomLineCount * lineHeight;
-        var startY = lastLineBottom.Y;
-
-        var brush = new SolidColorBrush(Color.FromArgb(10, 128, 128, 128));
-        var rect = new Rect(0, startY, textView.Bounds.Width, phantomHeight);
-
-        drawingContext.DrawRectangle(brush, null, rect);
     }
 }
