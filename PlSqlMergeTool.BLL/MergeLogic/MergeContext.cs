@@ -36,6 +36,8 @@ public class MergeContext
 
     public required DiffResult BaseVsLocalDiff { get; init; }
     public required DiffResult BaseVsTargetDiff { get; init; }
+    public DiffResult? BaseVsResolvedDiff { get; set; }
+    public ParsedSqlDocument? Resolved { get; set; }
 
     public bool HasLocalChanges => BaseVsLocalDiff.DiffBlocks.Any();
     public bool HasTargetChanges => BaseVsTargetDiff.DiffBlocks.Any();

@@ -10,11 +10,13 @@ public class DiffBackgroundRenderer : IBackgroundRenderer
 {
     private readonly TextView _textView;
     private readonly List<HighlightRegion> _regions;
+    private readonly HashSet<int> _phantomLines;
 
-    public DiffBackgroundRenderer(TextView textView, List<HighlightRegion> regions)
+    public DiffBackgroundRenderer(TextView textView, List<HighlightRegion> regions, IEnumerable<int>? phantomLines = null)
     {
         _textView = textView;
         _regions = regions;
+        _phantomLines = phantomLines == null ? new HashSet<int>() : new HashSet<int>(phantomLines);
     }
 
     public KnownLayer Layer => KnownLayer.Background;
@@ -30,6 +32,8 @@ public class DiffBackgroundRenderer : IBackgroundRenderer
         {
             var firstLine = visualLine.FirstDocumentLine;
             if (firstLine == null) continue;
+
+            if (_phantomLines.Contains(firstLine.LineNumber)) continue;
 
             var region = _regions.FirstOrDefault(r => firstLine.LineNumber >= r.StartLine && firstLine.LineNumber <= r.EndLine);
             

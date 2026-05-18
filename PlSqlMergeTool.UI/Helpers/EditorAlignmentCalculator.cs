@@ -24,30 +24,66 @@ public class SyncBlock
 
 public class EditorAlignmentCalculator
 {
-public AlignmentGaps CalculateGaps(IEnumerable<SyncBlock> blocks)
+    public AlignmentGaps CalculateGaps(IEnumerable<SyncBlock> blocks)
     {
         var gaps = new AlignmentGaps();
+        
+        int totalLocalGaps = 0;
+        int totalTargetGaps = 0;
+        int totalResolvedGaps = 0;
 
         foreach (var block in blocks)
         {
-            int maxLines = Math.Max(block.LocalLineCount, Math.Max(block.TargetLineCount, block.ResolvedLineCount));
+            // 1. Align the START of the block
+            int localStartHeight = block.LocalInsertAfterLine + totalLocalGaps;
+            int targetStartHeight = block.TargetInsertAfterLine + totalTargetGaps;
+            int resolvedStartHeight = block.ResolvedInsertAfterLine + totalResolvedGaps;
 
-            int localGap = maxLines - block.LocalLineCount;
-            if (localGap > 0)
+            int maxStartHeight = Math.Max(localStartHeight, Math.Max(targetStartHeight, resolvedStartHeight));
+
+            if (localStartHeight < maxStartHeight)
             {
-                AddGap(gaps.LocalGaps, block.LocalInsertAfterLine, localGap);
+                int diff = maxStartHeight - localStartHeight;
+                AddGap(gaps.LocalGaps, block.LocalInsertAfterLine, diff);
+                totalLocalGaps += diff;
+            }
+            if (targetStartHeight < maxStartHeight)
+            {
+                int diff = maxStartHeight - targetStartHeight;
+                AddGap(gaps.TargetGaps, block.TargetInsertAfterLine, diff);
+                totalTargetGaps += diff;
+            }
+            if (resolvedStartHeight < maxStartHeight)
+            {
+                int diff = maxStartHeight - resolvedStartHeight;
+                AddGap(gaps.ResolvedGaps, block.ResolvedInsertAfterLine, diff);
+                totalResolvedGaps += diff;
             }
 
-            int targetGap = maxLines - block.TargetLineCount;
-            if (targetGap > 0)
-            {
-                AddGap(gaps.TargetGaps, block.TargetInsertAfterLine, targetGap);
-            }
+            // 2. Align the END of the block (handle block size differences)
+            int localEndHeight = maxStartHeight + block.LocalLineCount;
+            int targetEndHeight = maxStartHeight + block.TargetLineCount;
+            int resolvedEndHeight = maxStartHeight + block.ResolvedLineCount;
 
-            int resolvedGap = maxLines - block.ResolvedLineCount;
-            if (resolvedGap > 0)
+            int maxEndHeight = Math.Max(localEndHeight, Math.Max(targetEndHeight, resolvedEndHeight));
+
+            if (localEndHeight < maxEndHeight)
             {
-                AddGap(gaps.ResolvedGaps, block.ResolvedInsertAfterLine, resolvedGap);
+                int diff = maxEndHeight - localEndHeight;
+                AddGap(gaps.LocalGaps, block.LocalInsertAfterLine + block.LocalLineCount, diff);
+                totalLocalGaps += diff;
+            }
+            if (targetEndHeight < maxEndHeight)
+            {
+                int diff = maxEndHeight - targetEndHeight;
+                AddGap(gaps.TargetGaps, block.TargetInsertAfterLine + block.TargetLineCount, diff);
+                totalTargetGaps += diff;
+            }
+            if (resolvedEndHeight < maxEndHeight)
+            {
+                int diff = maxEndHeight - resolvedEndHeight;
+                AddGap(gaps.ResolvedGaps, block.ResolvedInsertAfterLine + block.ResolvedLineCount, diff);
+                totalResolvedGaps += diff;
             }
         }
 
@@ -56,6 +92,7 @@ public AlignmentGaps CalculateGaps(IEnumerable<SyncBlock> blocks)
 
     private void AddGap(Dictionary<int, int> gapsDict, int line, int count)
     {
+        if (count <= 0) return;
         if (gapsDict.ContainsKey(line))
         {
             gapsDict[line] += count;

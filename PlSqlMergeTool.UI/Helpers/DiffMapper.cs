@@ -119,43 +119,128 @@ public static class DiffMapper
         return merged;
     }
 
-    private class SyncSpan
+    private static int[] MapBaseToSide(int baseCount, DiffPlex.Model.DiffResult diff)
     {
-        public int BaseStartLine { get; set; }
-        public int BaseEndLine { get; set; }
-        public int LocalStartLine { get; set; }
-        public int LocalEndLine { get; set; }
-        public int TargetStartLine { get; set; }
-        public int TargetEndLine { get; set; }
+        int[] map = new int[baseCount];
+        for (int i = 0; i < baseCount; i++) map[i] = -1;
+
+        if (diff == null || diff.DiffBlocks == null) 
+        {
+            for (int i = 0; i < baseCount; i++) map[i] = i;
+            return map;
+        }
+
+        int baseIdx = 0;
+        int sideIdx = 0;
+
+        foreach (var block in diff.DiffBlocks)
+        {
+            while (baseIdx < block.DeleteStartA)
+            {
+                if (baseIdx < baseCount) map[baseIdx] = sideIdx;
+                baseIdx++;
+                sideIdx++;
+            }
+
+            for (int i = 0; i < block.DeleteCountA; i++)
+            {
+                if (baseIdx < baseCount) map[baseIdx] = -1;
+                baseIdx++;
+            }
+
+            sideIdx += block.InsertCountB;
+        }
+
+        while (baseIdx < baseCount)
+        {
+            map[baseIdx] = sideIdx;
+            baseIdx++;
+            sideIdx++;
+        }
+
+        return map;
+    }
+
+    private static (int StartIdx, int EndIdx) GetIndexRange(int[] map, int baseStartIdx, int baseEndIdx, int sideTokenCount)
+    {
+        if (baseStartIdx >= map.Length) 
+            return (sideTokenCount, sideTokenCount - 1);
+
+        if (baseStartIdx > baseEndIdx)
+        {
+            int idx = map[baseStartIdx];
+            if (idx == -1) idx = FindNearestMappedIndex(map, baseStartIdx, sideTokenCount);
+            return (idx, idx - 1);
+        }
+
+        int start = -1;
+        for (int i = baseStartIdx; i <= baseEndIdx; i++)
+        {
+            if (map[i] != -1) { start = map[i]; break; }
+        }
+        if (start == -1) start = FindNearestMappedIndex(map, baseStartIdx, sideTokenCount);
+
+        int end = -1;
+        for (int i = baseEndIdx; i >= baseStartIdx; i--)
+        {
+            if (map[i] != -1) { end = map[i]; break; }
+        }
+        if (end == -1) end = start - 1;
+
+        return (start, end);
+    }
+
+    private static int FindNearestMappedIndex(int[] map, int baseIdx, int sideTokenCount)
+    {
+        for (int i = baseIdx; i < map.Length; i++)
+            if (map[i] != -1) return map[i];
+        return sideTokenCount;
+    }
+
+    private class TokenSpan
+    {
+        public int BaseStartIdx { get; set; }
+        public int BaseEndIdx { get; set; }
+        public int LocalStartIdx { get; set; }
+        public int LocalEndIdx { get; set; }
+        public int TargetStartIdx { get; set; }
+        public int TargetEndIdx { get; set; }
+        public int ResolvedStartIdx { get; set; }
+        public int ResolvedEndIdx { get; set; }
         public bool HasLocal { get; set; }
         public bool HasTarget { get; set; }
+        public bool HasResolved { get; set; }
     }
 
     public static List<SyncBlock> BuildSyncBlocks(MergeContext context)
     {
         var syncBlocks = new List<SyncBlock>();
-        var spans = new List<SyncSpan>();
-
+        
         var baseTokens = context.Baseline?.CleanTokens;
         var localTokens = context.Local?.CleanTokens;
         var targetTokens = context.Target?.CleanTokens;
+        var resolvedTokens = context.Resolved?.CleanTokens;
 
-        if (baseTokens == null || localTokens == null || targetTokens == null) 
+        if (baseTokens == null || localTokens == null || targetTokens == null || resolvedTokens == null) 
             return syncBlocks;
+
+        int baseCount = baseTokens.Count;
+        int[] mapLocal = MapBaseToSide(baseCount, context.BaseVsLocalDiff);
+        int[] mapTarget = MapBaseToSide(baseCount, context.BaseVsTargetDiff);
+        int[] mapResolved = MapBaseToSide(baseCount, context.BaseVsResolvedDiff);
+
+        var spans = new List<TokenSpan>();
 
         if (context.BaseVsLocalDiff?.DiffBlocks != null)
         {
             foreach (var block in context.BaseVsLocalDiff.DiffBlocks)
             {
-                var baseRange = GetPhysicalRange(baseTokens, block.DeleteStartA, block.DeleteCountA);
-                var localRange = GetPhysicalRange(localTokens, block.InsertStartB, block.InsertCountB);
-
-                spans.Add(new SyncSpan
+                spans.Add(new TokenSpan
                 {
-                    BaseStartLine = baseRange.StartLine,
-                    BaseEndLine = baseRange.EndLine,
-                    LocalStartLine = localRange.StartLine,
-                    LocalEndLine = localRange.EndLine,
+                    BaseStartIdx = block.DeleteStartA,
+                    BaseEndIdx = block.DeleteStartA + block.DeleteCountA - 1,
+                    LocalStartIdx = block.InsertStartB,
+                    LocalEndIdx = block.InsertStartB + block.InsertCountB - 1,
                     HasLocal = true
                 });
             }
@@ -165,118 +250,143 @@ public static class DiffMapper
         {
             foreach (var block in context.BaseVsTargetDiff.DiffBlocks)
             {
-                var baseRange = GetPhysicalRange(baseTokens, block.DeleteStartA, block.DeleteCountA);
-                var targetRange = GetPhysicalRange(targetTokens, block.InsertStartB, block.InsertCountB);
-
-                spans.Add(new SyncSpan
+                spans.Add(new TokenSpan
                 {
-                    BaseStartLine = baseRange.StartLine,
-                    BaseEndLine = baseRange.EndLine,
-                    TargetStartLine = targetRange.StartLine,
-                    TargetEndLine = targetRange.EndLine,
+                    BaseStartIdx = block.DeleteStartA,
+                    BaseEndIdx = block.DeleteStartA + block.DeleteCountA - 1,
+                    TargetStartIdx = block.InsertStartB,
+                    TargetEndIdx = block.InsertStartB + block.InsertCountB - 1,
                     HasTarget = true
                 });
             }
         }
 
-        if (spans.Count == 0) return syncBlocks;
-
-        spans.Sort((a, b) => a.BaseStartLine.CompareTo(b.BaseStartLine));
-
-        var mergedSpans = new List<SyncSpan>();
-        var current = spans[0];
-
-        for (int i = 1; i < spans.Count; i++)
+        if (context.BaseVsResolvedDiff?.DiffBlocks != null)
         {
-            var next = spans[i];
-
-            if (next.BaseStartLine <= Math.Max(current.BaseEndLine, current.BaseStartLine))
+            foreach (var block in context.BaseVsResolvedDiff.DiffBlocks)
             {
-                current.BaseEndLine = Math.Max(current.BaseEndLine, next.BaseEndLine);
-
-                if (next.HasLocal)
+                spans.Add(new TokenSpan
                 {
-                    if (current.HasLocal)
-                    {
-                        current.LocalStartLine = Math.Min(current.LocalStartLine, next.LocalStartLine);
-                        current.LocalEndLine = Math.Max(current.LocalEndLine, next.LocalEndLine);
-                    }
-                    else
-                    {
-                        current.LocalStartLine = next.LocalStartLine;
-                        current.LocalEndLine = next.LocalEndLine;
-                        current.HasLocal = true;
-                    }
-                }
-
-                if (next.HasTarget)
-                {
-                    if (current.HasTarget)
-                    {
-                        current.TargetStartLine = Math.Min(current.TargetStartLine, next.TargetStartLine);
-                        current.TargetEndLine = Math.Max(current.TargetEndLine, next.TargetEndLine);
-                    }
-                    else
-                    {
-                        current.TargetStartLine = next.TargetStartLine;
-                        current.TargetEndLine = next.TargetEndLine;
-                        current.HasTarget = true;
-                    }
-                }
-            }
-            else
-            {
-                mergedSpans.Add(current);
-                current = next;
+                    BaseStartIdx = block.DeleteStartA,
+                    BaseEndIdx = block.DeleteStartA + block.DeleteCountA - 1,
+                    ResolvedStartIdx = block.InsertStartB,
+                    ResolvedEndIdx = block.InsertStartB + block.InsertCountB - 1,
+                    HasResolved = true
+                });
             }
         }
-        mergedSpans.Add(current);
 
-        int localDelta = 0;
-        int targetDelta = 0;
+        spans.Sort((a, b) => a.BaseStartIdx.CompareTo(b.BaseStartIdx));
+
+        var mergedSpans = new List<TokenSpan>();
+        if (spans.Count > 0)
+        {
+            var current = spans[0];
+            for (int i = 1; i < spans.Count; i++)
+            {
+                var next = spans[i];
+                if (next.BaseStartIdx <= current.BaseEndIdx + 1)
+                {
+                    current.BaseEndIdx = Math.Max(current.BaseEndIdx, next.BaseEndIdx);
+                    if (next.HasLocal)
+                    {
+                        if (current.HasLocal) { current.LocalStartIdx = Math.Min(current.LocalStartIdx, next.LocalStartIdx); current.LocalEndIdx = Math.Max(current.LocalEndIdx, next.LocalEndIdx); }
+                        else { current.LocalStartIdx = next.LocalStartIdx; current.LocalEndIdx = next.LocalEndIdx; current.HasLocal = true; }
+                    }
+                    if (next.HasTarget)
+                    {
+                        if (current.HasTarget) { current.TargetStartIdx = Math.Min(current.TargetStartIdx, next.TargetStartIdx); current.TargetEndIdx = Math.Max(current.TargetEndIdx, next.TargetEndIdx); }
+                        else { current.TargetStartIdx = next.TargetStartIdx; current.TargetEndIdx = next.TargetEndIdx; current.HasTarget = true; }
+                    }
+                    if (next.HasResolved)
+                    {
+                        if (current.HasResolved) { current.ResolvedStartIdx = Math.Min(current.ResolvedStartIdx, next.ResolvedStartIdx); current.ResolvedEndIdx = Math.Max(current.ResolvedEndIdx, next.ResolvedEndIdx); }
+                        else { current.ResolvedStartIdx = next.ResolvedStartIdx; current.ResolvedEndIdx = next.ResolvedEndIdx; current.HasResolved = true; }
+                    }
+                }
+                else
+                {
+                    mergedSpans.Add(current);
+                    current = next;
+                }
+            }
+            mergedSpans.Add(current);
+        }
+
+        int lastBaseIdx = 0;
 
         foreach (var span in mergedSpans)
         {
-            int baseCount = Math.Max(0, span.BaseEndLine - span.BaseStartLine + 1);
+            // Process unchanged tokens BEFORE this span to find whitespace gaps
+            for (int i = lastBaseIdx; i < span.BaseStartIdx; i++)
+            {
+                int lIdx = mapLocal[i];
+                int tIdx = mapTarget[i];
+                int rIdx = mapResolved[i];
 
-            int localInsertAfter, localCount;
-            if (span.HasLocal)
-            {
-                localInsertAfter = span.LocalStartLine - 1;
-                localCount = Math.Max(0, span.LocalEndLine - span.LocalStartLine + 1);
-                localDelta += localCount - baseCount; // Обновляем смещение Банка
-            }
-            else
-            {
-                localInsertAfter = span.BaseStartLine - 1 + localDelta;
-                localCount = baseCount;
-            }
+                if (lIdx != -1 && tIdx != -1 && rIdx != -1)
+                {
+                    int lLine = localTokens[lIdx].Line;
+                    int tLine = targetTokens[tIdx].Line;
+                    int rLine = resolvedTokens[rIdx].Line;
 
-            int targetInsertAfter, targetCount;
-            if (span.HasTarget)
-            {
-                targetInsertAfter = span.TargetStartLine - 1;
-                targetCount = Math.Max(0, span.TargetEndLine - span.TargetStartLine + 1);
-                targetDelta += targetCount - baseCount; // Обновляем смещение Вендора
-            }
-            else
-            {
-                targetInsertAfter = span.BaseStartLine - 1 + targetDelta;
-                targetCount = baseCount;
+                    // We create a zero-length sync block at every unchanged token to act as an alignment anchor!
+                    syncBlocks.Add(new SyncBlock
+                    {
+                        LocalInsertAfterLine = lLine - 1,
+                        TargetInsertAfterLine = tLine - 1,
+                        ResolvedInsertAfterLine = rLine - 1,
+                        LocalLineCount = 0,
+                        TargetLineCount = 0,
+                        ResolvedLineCount = 0
+                    });
+                }
             }
 
-            int resolvedCount = Math.Max(localCount, targetCount);
-            int resolvedInsertAfter = Math.Max(localInsertAfter, targetInsertAfter); 
+            if (!span.HasLocal) { var r = GetIndexRange(mapLocal, span.BaseStartIdx, span.BaseEndIdx, localTokens.Count); span.LocalStartIdx = r.StartIdx; span.LocalEndIdx = r.EndIdx; }
+            if (!span.HasTarget) { var r = GetIndexRange(mapTarget, span.BaseStartIdx, span.BaseEndIdx, targetTokens.Count); span.TargetStartIdx = r.StartIdx; span.TargetEndIdx = r.EndIdx; }
+            if (!span.HasResolved) { var r = GetIndexRange(mapResolved, span.BaseStartIdx, span.BaseEndIdx, resolvedTokens.Count); span.ResolvedStartIdx = r.StartIdx; span.ResolvedEndIdx = r.EndIdx; }
+
+            var localPhys = GetPhysicalRange(localTokens, span.LocalStartIdx, span.LocalEndIdx - span.LocalStartIdx + 1);
+            var targetPhys = GetPhysicalRange(targetTokens, span.TargetStartIdx, span.TargetEndIdx - span.TargetStartIdx + 1);
+            var resolvedPhys = GetPhysicalRange(resolvedTokens, span.ResolvedStartIdx, span.ResolvedEndIdx - span.ResolvedStartIdx + 1);
 
             syncBlocks.Add(new SyncBlock
             {
-                LocalInsertAfterLine = localInsertAfter,
-                TargetInsertAfterLine = targetInsertAfter,
-                ResolvedInsertAfterLine = resolvedInsertAfter,
-                LocalLineCount = localCount,
-                TargetLineCount = targetCount,
-                ResolvedLineCount = resolvedCount
+                LocalInsertAfterLine = localPhys.StartLine - 1,
+                TargetInsertAfterLine = targetPhys.StartLine - 1,
+                ResolvedInsertAfterLine = resolvedPhys.StartLine - 1,
+                LocalLineCount = Math.Max(0, localPhys.EndLine - localPhys.StartLine + 1),
+                TargetLineCount = Math.Max(0, targetPhys.EndLine - targetPhys.StartLine + 1),
+                ResolvedLineCount = Math.Max(0, resolvedPhys.EndLine - resolvedPhys.StartLine + 1)
             });
+
+            lastBaseIdx = span.BaseEndIdx + 1;
+        }
+
+        // Process remaining unchanged tokens at the end of the file
+        for (int i = lastBaseIdx; i < baseCount; i++)
+        {
+            int lIdx = mapLocal[i];
+            int tIdx = mapTarget[i];
+            int rIdx = mapResolved[i];
+
+            if (lIdx != -1 && tIdx != -1 && rIdx != -1)
+            {
+                int lLine = localTokens[lIdx].Line;
+                int tLine = targetTokens[tIdx].Line;
+                int rLine = resolvedTokens[rIdx].Line;
+
+                syncBlocks.Add(new SyncBlock
+                {
+                    LocalInsertAfterLine = lLine - 1,
+                    TargetInsertAfterLine = tLine - 1,
+                    ResolvedInsertAfterLine = rLine - 1,
+                    LocalLineCount = 0,
+                    TargetLineCount = 0,
+                    ResolvedLineCount = 0
+                });
+            }
         }
 
         return syncBlocks;

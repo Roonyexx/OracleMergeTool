@@ -39,4 +39,16 @@ public class SqlDifferService
             BaseVsTargetDiff = baseVsTargetDiff
         };
     }
+
+    public void UpdateResolvedDiff(MergeContext context, string resolvedSql)
+    {
+        var resolved = _sqlAnalyserService.Tokenize(resolvedSql);
+        string baseJoined = string.Join('\uFFFF', context.Baseline.CleanTokens.Select(t => t.Text));
+        string resolvedJoined = string.Join('\uFFFF', resolved.CleanTokens.Select(t => t.Text));
+        
+        var baseVsResolvedDiff = _differ.CreateDiffs(baseJoined, resolvedJoined, false, true, _chunker);
+        
+        context.Resolved = resolved;
+        context.BaseVsResolvedDiff = baseVsResolvedDiff;
+    }
 }

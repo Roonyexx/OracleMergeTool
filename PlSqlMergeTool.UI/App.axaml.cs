@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
@@ -18,6 +19,8 @@ namespace PlSqlMergeTool.UI;
 
 public partial class App : Application
 {
+    public static IServiceProvider? ServiceProvider { get; private set; }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -27,12 +30,12 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
         ConfigureServices(services);
-        var serviceProvider = services.BuildServiceProvider();
+        ServiceProvider = services.BuildServiceProvider();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
-            mainWindow.DataContext = serviceProvider.GetRequiredService<MainWindowViewModel>();
+            var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+            mainWindow.DataContext = ServiceProvider.GetRequiredService<MainWindowViewModel>();
             
             desktop.MainWindow = mainWindow;
         }
