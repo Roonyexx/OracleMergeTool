@@ -12,15 +12,15 @@ public class MergeRuleBuilder
         return this;
     }
 
-    public MergeRuleBuilder AddVendorModificationRule()
+    public MergeRuleBuilder AddVendorModificationRule(SqlBuilderService builderService)
     {
-        _rules.Add(new VendorModificationRule());
+        _rules.Add(new VendorModificationRule(builderService));
         return this;
     }
 
-    public MergeRuleBuilder AddBankModificationRule()
+    public MergeRuleBuilder AddBankModificationRule(SqlBuilderService builderService)
     {
-        _rules.Add(new BankModificationRule());
+        _rules.Add(new BankModificationRule(builderService));
         return this;
     }
 

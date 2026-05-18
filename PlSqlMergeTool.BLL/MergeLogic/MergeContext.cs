@@ -13,6 +13,20 @@ public enum MergeStatus
     ManualConflict      // Kонфликт, требующий ручного разрешения
 }
 
+public enum MergeSource
+{
+    None,
+    Local,
+    Target
+}
+
+public class ResolvedRegion
+{
+    public int StartLine { get; set; }
+    public int EndLine { get; set; }
+    public MergeSource Source { get; set; }
+}
+
 public class MergeContext
 {
     public required string FileName { get; init; }
@@ -28,8 +42,9 @@ public class MergeContext
 
     public MergeStatus Status { get; private set; } = MergeStatus.Pending;
     public string? ResolvedCode { get; private set; } 
+    public List<ResolvedRegion> ResolvedRegions { get; private set; } = new();
 
-    public void ResolveWith(MergeStatus status, string? resolvedText)
+    public void ResolveWith(MergeStatus status, string? resolvedText, List<ResolvedRegion>? resolvedRegions = null)
     {
         if (Status != MergeStatus.Pending)
         {
@@ -38,6 +53,10 @@ public class MergeContext
 
         Status = status;
         ResolvedCode = resolvedText;
+        if (resolvedRegions != null)
+        {
+            ResolvedRegions = resolvedRegions;
+        }
     }
 
     public void MarkAsConflict()

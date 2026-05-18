@@ -33,11 +33,28 @@ public class NoChangesRule : MergeRuleHandler
 
 public class VendorModificationRule : MergeRuleHandler
 {
+    private readonly SqlBuilderService _builderService;
+
+    public VendorModificationRule(SqlBuilderService builderService)
+    {
+        _builderService = builderService;
+    }
+
     public override void Handle(MergeContext context)
     {
         if (!context.HasLocalChanges && context.HasTargetChanges)
         {
-            context.ResolveWith(MergeStatus.AutoTarget, context.Target.OriginalText);
+            var edits = context.BaseVsTargetDiff.DiffBlocks
+                .Where(b => b.InsertCountB > 0)
+                .Select(b => new AppliedTokenEdit 
+                { 
+                    StartTokenIndex = b.InsertStartB, 
+                    TokenCount = b.InsertCountB, 
+                    Source = MergeSource.Target 
+                }).ToList();
+
+            var (resolvedCode, regions) = _builderService.BuildSql(context.Target.CleanTokens, edits);
+            context.ResolveWith(MergeStatus.AutoTarget, resolvedCode, regions);
             return;
         }
 
@@ -47,11 +64,28 @@ public class VendorModificationRule : MergeRuleHandler
 
 public class BankModificationRule : MergeRuleHandler
 {
+    private readonly SqlBuilderService _builderService;
+
+    public BankModificationRule(SqlBuilderService builderService)
+    {
+        _builderService = builderService;
+    }
+
     public override void Handle(MergeContext context)
     {
         if (context.HasLocalChanges && !context.HasTargetChanges)
         {
-            context.ResolveWith(MergeStatus.AutoLocal, context.Local.OriginalText);
+            var edits = context.BaseVsLocalDiff.DiffBlocks
+                .Where(b => b.InsertCountB > 0)
+                .Select(b => new AppliedTokenEdit 
+                { 
+                    StartTokenIndex = b.InsertStartB, 
+                    TokenCount = b.InsertCountB, 
+                    Source = MergeSource.Local 
+                }).ToList();
+
+            var (resolvedCode, regions) = _builderService.BuildSql(context.Local.CleanTokens, edits);
+            context.ResolveWith(MergeStatus.AutoLocal, resolvedCode, regions);
             return;
         }
 
@@ -82,9 +116,9 @@ public class ThreeWayMergeRule : MergeRuleHandler
                 return;
             }
 
-            string resolvedCode = _builderService.BuildSql(mergeResult.ResolvedTokens);
+            var (resolvedCode, regions) = _builderService.BuildSql(mergeResult.ResolvedTokens, mergeResult.AppliedEdits);
             
-            context.ResolveWith(MergeStatus.AutoMerged, resolvedCode);
+            context.ResolveWith(MergeStatus.AutoMerged, resolvedCode, regions);
             return;
         }
 

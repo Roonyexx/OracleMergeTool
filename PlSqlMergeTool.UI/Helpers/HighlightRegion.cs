@@ -5,7 +5,9 @@ public enum HighlightType
     None,
     Added,
     Deleted,
-    Conflict
+    Conflict,
+    ResolvedFromLocal,
+    ResolvedFromTarget
 }
 
 public class HighlightRegion

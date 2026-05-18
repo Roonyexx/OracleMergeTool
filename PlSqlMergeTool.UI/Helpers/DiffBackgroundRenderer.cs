@@ -54,6 +54,8 @@ public class DiffBackgroundRenderer : IBackgroundRenderer
             HighlightType.Added => new SolidColorBrush(Color.FromArgb(50, 100, 255, 100)), // Светло-зеленый
             HighlightType.Deleted => new SolidColorBrush(Color.FromArgb(50, 255, 100, 100)), // Светло-красный
             HighlightType.Conflict => new SolidColorBrush(Color.FromArgb(50, 255, 180, 100)), // Оранжевый
+            HighlightType.ResolvedFromLocal => new SolidColorBrush(Color.FromArgb(50, 100, 150, 255)), // Синий
+            HighlightType.ResolvedFromTarget => new SolidColorBrush(Color.FromArgb(50, 200, 100, 255)), // Фиолетовый
             _ => null
         };
     }

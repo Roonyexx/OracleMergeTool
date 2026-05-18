@@ -85,8 +85,8 @@ public partial class App : Application
             resolver.ConfigureRules(builder => 
             {
                 builder.AddNoChangesRule()
-                       .AddVendorModificationRule()
-                       .AddBankModificationRule()
+                       .AddVendorModificationRule(sqlBuilder)
+                       .AddBankModificationRule(sqlBuilder)
                        .AddConflictRule(mergeAlgorithm, sqlBuilder);
             });
 

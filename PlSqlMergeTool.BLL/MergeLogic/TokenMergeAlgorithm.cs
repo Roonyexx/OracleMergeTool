@@ -4,10 +4,18 @@ using System.Linq;
 
 namespace PlSqlMergeTool.BLL.MergeLogic;
 
+public class AppliedTokenEdit
+{
+    public int StartTokenIndex { get; set; }
+    public int TokenCount { get; set; }
+    public MergeSource Source { get; set; }
+}
+
 public class TokenMergeResult
 {
     public List<PlSqlToken> ResolvedTokens { get; set; } = [];
     public bool HasUnresolvedConflicts { get; set; }    
+    public List<AppliedTokenEdit> AppliedEdits { get; set; } = [];
 }
 
 public class MergeEdit
@@ -15,6 +23,7 @@ public class MergeEdit
     public int BaseStart { get; init; }
     public int BaseCount { get; init; }
     public required List<PlSqlToken> InsertTokens { get; init; }
+    public MergeSource Source { get; init; }
 }
 
 public interface ITokenMergeAlgorithm
@@ -26,8 +35,8 @@ public class TokenMergeAlgorithm : ITokenMergeAlgorithm
 {
     public TokenMergeResult MergeTokens(MergeContext context)
     {
-        var localEdits = GetEdits(context.BaseVsLocalDiff.DiffBlocks, context.Local.CleanTokens);
-        var targetEdits = GetEdits(context.BaseVsTargetDiff.DiffBlocks, context.Target.CleanTokens);
+        var localEdits = GetEdits(context.BaseVsLocalDiff.DiffBlocks, context.Local.CleanTokens, MergeSource.Local);
+        var targetEdits = GetEdits(context.BaseVsTargetDiff.DiffBlocks, context.Target.CleanTokens, MergeSource.Target);
 
         foreach (var l in localEdits)
         {
@@ -52,25 +61,46 @@ public class TokenMergeAlgorithm : ITokenMergeAlgorithm
                 allEdits.Add(t);
         }
 
-        allEdits.Sort((a, b) => b.BaseStart.CompareTo(a.BaseStart));
+        allEdits.Sort((a, b) => a.BaseStart.CompareTo(b.BaseStart));
 
         var resolved = new List<PlSqlToken>(context.Baseline.CleanTokens);
+        var appliedEdits = new List<AppliedTokenEdit>();
+        int offset = 0;
+
         foreach (var edit in allEdits)
         {
-            resolved.RemoveRange(edit.BaseStart, edit.BaseCount);
-            resolved.InsertRange(edit.BaseStart, edit.InsertTokens);
+            int actualStart = edit.BaseStart + offset;
+            resolved.RemoveRange(actualStart, edit.BaseCount);
+            resolved.InsertRange(actualStart, edit.InsertTokens);
+
+            if (edit.InsertTokens.Count > 0)
+            {
+                appliedEdits.Add(new AppliedTokenEdit
+                {
+                    StartTokenIndex = actualStart,
+                    TokenCount = edit.InsertTokens.Count,
+                    Source = edit.Source
+                });
+            }
+
+            offset += edit.InsertTokens.Count - edit.BaseCount;
         }
 
-        return new TokenMergeResult { ResolvedTokens = resolved };
+        return new TokenMergeResult 
+        { 
+            ResolvedTokens = resolved,
+            AppliedEdits = appliedEdits
+        };
     }
 
-    private List<MergeEdit> GetEdits(IList<DiffPlex.Model.DiffBlock> blocks, List<PlSqlToken> sourceTokens)
+    private List<MergeEdit> GetEdits(IList<DiffPlex.Model.DiffBlock> blocks, List<PlSqlToken> sourceTokens, MergeSource source)
     {
         return blocks.Select(b => new MergeEdit
         {
             BaseStart = b.DeleteStartA,
             BaseCount = b.DeleteCountA,
-            InsertTokens = sourceTokens.GetRange(b.InsertStartB, b.InsertCountB)
+            InsertTokens = sourceTokens.GetRange(b.InsertStartB, b.InsertCountB),
+            Source = source
         }).ToList();
     }
 

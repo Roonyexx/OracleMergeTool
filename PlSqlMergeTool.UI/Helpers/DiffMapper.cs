@@ -70,8 +70,30 @@ public static class DiffMapper
 
     public static List<HighlightRegion> GetResolvedRegions(MergeContext context)
     {   
-        // todo добавить подсветку для взятых из Банка и Вендора изменений, блоки и место изменений будем брать в результатах слияния, ток пока не знаю как 
-        return new List<HighlightRegion>(); 
+        var regions = new List<HighlightRegion>();
+        if (context.ResolvedRegions == null || context.ResolvedRegions.Count == 0) return regions;
+
+        foreach (var r in context.ResolvedRegions)
+        {
+            var type = r.Source switch
+            {
+                MergeSource.Local => HighlightType.ResolvedFromLocal,
+                MergeSource.Target => HighlightType.ResolvedFromTarget,
+                _ => HighlightType.None
+            };
+            
+            if (type != HighlightType.None)
+            {
+                regions.Add(new HighlightRegion
+                {
+                    StartLine = r.StartLine,
+                    EndLine = r.EndLine,
+                    Type = type
+                });
+            }
+        }
+        
+        return MergeRegions(regions);
     }
 
     private static List<HighlightRegion> MergeRegions(List<HighlightRegion> regions)
@@ -83,7 +105,7 @@ public static class DiffMapper
 
         foreach (var next in regions.OrderBy(r => r.StartLine).Skip(1))
         {
-            if (next.StartLine <= current.EndLine + 1)
+            if (next.StartLine <= current.EndLine + 1 && current.Type == next.Type)
             {
                 current.EndLine = Math.Max(current.EndLine, next.EndLine);
             }
